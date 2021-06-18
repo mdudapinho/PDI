@@ -16,7 +16,7 @@ INPUT_IMAGE =  'arroz.bmp'
 
 # TODO: ajuste estes parâmetros!
 NEGATIVO = False
-THRESHOLD = 0.4
+THRESHOLD = 0.5
 ALTURA_MIN = 1
 LARGURA_MIN = 1
 N_PIXELS_MIN = 1
@@ -36,6 +36,21 @@ Valor de retorno: versão binarizada da img_in.'''
     # Dica/desafio: usando a função np.where, dá para fazer a binarização muito
     # rapidamente, e com apenas uma linha de código!
 
+    rows, cols, channels = img.shape
+    img_out = img
+
+    # Versao 1
+    # for linha in range(rows):
+    #     for coluna in range(cols):
+    #         if (img[linha][coluna] > threshold):
+    #             img_out[linha][coluna] = 1
+    #         else:
+    #             img_out[linha][coluna] = 0 
+
+    # Versao 2
+    img_out = np.where( img > threshold, 1, 0)
+
+    return img_out 
 #-------------------------------------------------------------------------------
 
 def rotula (img, largura_min, altura_min, n_pixels_min):
@@ -70,7 +85,9 @@ def main ():
 
     # É uma boa prática manter o shape com 3 valores, independente da imagem ser
     # colorida ou não. Também já convertemos para float32.
+    # Muda o numero de linhas, colunas e canais 
     img = img.reshape ((img.shape [0], img.shape [1], 1))
+    # Normalizando com float
     img = img.astype (np.float32) / 255
 
     # Mantém uma cópia colorida para desenhar a saída.
@@ -80,23 +97,23 @@ def main ():
     if NEGATIVO:
         img = 1 - img
     img = binariza (img, THRESHOLD)
-    cv2.imshow ('01 - binarizada', img)
+    # cv2.imshow ('01 - binarizada', img)
     cv2.imwrite ('01 - binarizada.png', img*255)
 
     start_time = timeit.default_timer ()
     componentes = rotula (img, LARGURA_MIN, ALTURA_MIN, N_PIXELS_MIN)
-    n_componentes = len (componentes)
-    print ('Tempo: %f' % (timeit.default_timer () - start_time))
-    print ('%d componentes detectados.' % n_componentes)
+    # n_componentes = len (componentes)
+    # print ('Tempo: %f' % (timeit.default_timer () - start_time))
+    # print ('%d componentes detectados.' % n_componentes)
 
-    # Mostra os objetos encontrados.
-    for c in componentes:
-        cv2.rectangle (img_out, (c ['L'], c ['T']), (c ['R'], c ['B']), (0,0,1))
+    # # Mostra os objetos encontrados.
+    # for c in componentes:
+    #     cv2.rectangle (img_out, (c ['L'], c ['T']), (c ['R'], c ['B']), (0,0,1))
 
-    cv2.imshow ('02 - out', img_out)
-    cv2.imwrite ('02 - out.png', img_out*255)
-    cv2.waitKey ()
-    cv2.destroyAllWindows ()
+    # cv2.imshow ('02 - out', img_out)
+    # cv2.imwrite ('02 - out.png', img_out*255)
+    # cv2.waitKey ()
+    # cv2.destroyAllWindows ()
 
 
 if __name__ == '__main__':
