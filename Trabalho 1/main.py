@@ -52,6 +52,23 @@ Valor de retorno: versão binarizada da img_in.'''
 
     return img_out 
 #-------------------------------------------------------------------------------
+def inunda (label,img,x0,y0,cima,baixo,direita,esquerda,tam):
+    # Marca o arroz com o valor dele
+    img[y0][x0]=label
+    
+    # Tem vizinho para direita
+    if (img[y0][x0+1] == -1 and x0+1 < img.shape[0] ):
+        label,img,x0,y0,cima,baixo,direita,esquerda,tam = inunda(label,img,x0+1,y0,cima,baixo,direita+1,esquerda,tam+1)
+    
+    # Tem vizinho para esquerda
+    if (img[y0][x0-1] == -1 and x0 > 0 ):
+        label,img,x0,y0,cima,baixo,direita,esquerda,tam = inunda(label,img,x0-1,y0,cima,baixo,direita,esquerda-1,tam+1)
+    
+    # Tem vizinho pra baixo
+    if (img[y0+1][x0] == -1 and y0+1 < img.shape[1] ):
+        label,img,x0,y0,cima,baixo,direita,esquerda,tam = inunda(label,img,x0,y0+1,cima,baixo+1,direita,esquerda,tam+1)
+
+    return label,img,x0,y0,cima,baixo,direita,esquerda,tam
 
 def rotula (img, largura_min, altura_min, n_pixels_min):
     '''Rotulagem usando flood fill. Marca os objetos da imagem com os valores
@@ -72,7 +89,21 @@ respectivamente: topo, esquerda, baixo e direita.'''
 
     # TODO: escreva esta função.
     # Use a abordagem com flood fill recursivo.
+    
+    rows, cols, channels = img.shape
+    label = 1
 
+    img_ = np.where( img == 1 , -1, 0)
+
+    for linha in range(rows):
+        for coluna in range(cols):
+            # Tem arroz aqui
+            if (img_[linha][coluna] == -1):
+                aux = inunda(label,img_,linha,coluna,linha,linha,coluna,coluna,1)
+                print (aux)
+                label = label + 1
+
+    return label
 #===============================================================================
 
 def main ():
