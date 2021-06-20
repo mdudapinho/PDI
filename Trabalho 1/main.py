@@ -72,40 +72,41 @@ def FindBlob (label,img, y0,x0, blob):
     return blob
 
 def CheckBlob(blob, largura_min, altura_min, n_pixels_min):
-    if(len(blob) < n_pixels_min):
+    
+    n_pixels = len(blob)
+    if(n_pixels < n_pixels_min):
         return False
     
-    topo = blob[0].y
-    baixo = blob[0].y
-    esquerda = blob[0].x
-    direita = blob[0].x
+    topo = blob[0]['y']
+    baixo = blob[0]['y']
+    esquerda = blob[0]['x']
+    direita = blob[0]['x']
 
     for pos in blob:
-        if(topo > pos.y):
-            topo = pos.y
-        if(baixo < pos.y):
-            baixo = pos.y
-        if(direita < pos.x):
-            direita = pos.x
-        if(esquerda > pos.x):
-            esquerda = pos.x
+        if(topo > pos['y']):
+            topo = pos['y']
+        if(baixo < pos['y']):
+            baixo = pos['y']
+        if(direita < pos['x']):
+            direita = pos['x']
+        if(esquerda > pos['x']):
+            esquerda = pos['x']
 
     if((baixo - topo) < altura_min):
         return False
     if((direita - esquerda) < largura_min):
         return False
     
-    """
-        'label': rótulo do componente.
-        'n_pixels': número de pixels do componente.
-        'T', 'L', 'B', 'R': coordenadas do retângulo envolvente de um componente conexo,
-        respectivamente: topo, esquerda, baixo e direita.
-    """
-    
-
-
-
-
+    res = {
+        "label": blob[0]['label'],
+        "n_pixels": n_pixels,
+        'T': topo, 
+        'L': esquerda,
+        'B':baixo, 
+        'R': direita,
+    }
+    print(res)
+    return res
 
 def rotula (img, largura_min, altura_min, n_pixels_min):
     '''Rotulagem usando flood fill. Marca os objetos da imagem com os valores
@@ -138,11 +139,12 @@ respectivamente: topo, esquerda, baixo e direita.'''
             # Tem arroz aqui
             if (img_[linha][coluna] == -1):
                 blob = FindBlob(label, img_,linha,coluna,[])
-                if(CheckBlob(blob)):
-                    blobs.append(blob)
+                checkedBlob = CheckBlob(blob, largura_min, altura_min, n_pixels_min)
+                if(checkedBlob):
+                    blobs.append(checkedBlob)
                     label = label + 1
 
-    return label
+    return blobs
 #===============================================================================
 
 def main ():
@@ -171,20 +173,20 @@ def main ():
     cv2.imwrite ('01 - binarizada.png', img*255)
 
     start_time = timeit.default_timer ()
-    componentes, img_ = rotula (img, LARGURA_MIN, ALTURA_MIN, N_PIXELS_MIN)
-    #cv2.imwrite ('02 - teste.png', img_)
-    # n_componentes = len (componentes)
-    # print ('Tempo: %f' % (timeit.default_timer () - start_time))
-    # print ('%d componentes detectados.' % n_componentes)
+    componentes = rotula (img, LARGURA_MIN, ALTURA_MIN, N_PIXELS_MIN)
+    
+    n_componentes = len (componentes)
+    print ('Tempo: %f' % (timeit.default_timer () - start_time))
+    print ('%d componentes detectados.' % n_componentes)
 
-    # # Mostra os objetos encontrados.
-    # for c in componentes:
-    #     cv2.rectangle (img_out, (c ['L'], c ['T']), (c ['R'], c ['B']), (0,0,1))
+    # Mostra os objetos encontrados.
+    for c in componentes:
+        cv2.rectangle (img_out, (c ['L'], c ['T']), (c ['R'], c ['B']), (0,0,1))
 
-    # cv2.imshow ('02 - out', img_out)
-    # cv2.imwrite ('02 - out.png', img_out*255)
-    # cv2.waitKey ()
-    # cv2.destroyAllWindows ()
+    cv2.imshow ('02 - out', img_out)
+    cv2.imwrite ('02 - out.png', img_out*255)
+    cv2.waitKey ()
+    cv2.destroyAllWindows ()
 
 
 if __name__ == '__main__':
