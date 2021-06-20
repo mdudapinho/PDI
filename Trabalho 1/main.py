@@ -1,8 +1,8 @@
 #===============================================================================
-# Exemplo: segmentação de uma imagem em escala de cinza.
+# Exemplo: segmentacao de uma imagem em escala de cinza.
 #-------------------------------------------------------------------------------
 # Autor: Bogdan T. Nassu
-# Universidade Tecnológica Federal do Paraná
+# Universidade Tecnologica Federal do Paraná
 #===============================================================================
 
 import sys
@@ -16,7 +16,7 @@ INPUT_IMAGE =  'arroz.bmp'
 
 # TODO: ajuste estes parâmetros!
 NEGATIVO = False
-THRESHOLD = 0.5
+THRESHOLD = 0.8
 ALTURA_MIN = 1
 LARGURA_MIN = 1
 N_PIXELS_MIN = 1
@@ -33,7 +33,7 @@ Parâmetros: img: imagem de entrada. Se tiver mais que 1 canal, binariza cada
 Valor de retorno: versão binarizada da img_in.'''
 
     # TODO: escreva o código desta função.
-    # Dica/desafio: usando a função np.where, dá para fazer a binarização muito
+    # Dica/desafio: usando a função np.where, da para fazer a binarização muito
     # rapidamente, e com apenas uma linha de código!
 
     rows, cols, channels = img.shape
@@ -52,23 +52,60 @@ Valor de retorno: versão binarizada da img_in.'''
 
     return img_out 
 #-------------------------------------------------------------------------------
-def inunda (label,img,x0,y0,cima,baixo,direita,esquerda,tam):
+def FindBlob (label,img, y0,x0, blob):
     # Marca o arroz com o valor dele
-    img[y0][x0]=label
+    img[y0][x0] = label
+    blob.append({'x': x0, 'y': y0, 'label': label})
     
-    # Tem vizinho para direita
+     # Tem vizinho para direita
     if (img[y0][x0+1] == -1 and x0+1 < img.shape[0] ):
-        label,img,x0,y0,cima,baixo,direita,esquerda,tam = inunda(label,img,x0+1,y0,cima,baixo,direita+1,esquerda,tam+1)
+        blob = FindBlob(label,img,y0,x0+1, blob)
     
     # Tem vizinho para esquerda
     if (img[y0][x0-1] == -1 and x0 > 0 ):
-        label,img,x0,y0,cima,baixo,direita,esquerda,tam = inunda(label,img,x0-1,y0,cima,baixo,direita,esquerda-1,tam+1)
+        blob = FindBlob(label,img,y0,x0-1, blob)
     
     # Tem vizinho pra baixo
     if (img[y0+1][x0] == -1 and y0+1 < img.shape[1] ):
-        label,img,x0,y0,cima,baixo,direita,esquerda,tam = inunda(label,img,x0,y0+1,cima,baixo+1,direita,esquerda,tam+1)
+        blob = FindBlob(label,img,y0+1,x0, blob)
 
-    return label,img,x0,y0,cima,baixo,direita,esquerda,tam
+    return blob
+
+def CheckBlob(blob, largura_min, altura_min, n_pixels_min):
+    if(len(blob) < n_pixels_min):
+        return False
+    
+    topo = blob[0].y
+    baixo = blob[0].y
+    esquerda = blob[0].x
+    direita = blob[0].x
+
+    for pos in blob:
+        if(topo > pos.y):
+            topo = pos.y
+        if(baixo < pos.y):
+            baixo = pos.y
+        if(direita < pos.x):
+            direita = pos.x
+        if(esquerda > pos.x):
+            esquerda = pos.x
+
+    if((baixo - topo) < altura_min):
+        return False
+    if((direita - esquerda) < largura_min):
+        return False
+    
+    """
+        'label': rótulo do componente.
+        'n_pixels': número de pixels do componente.
+        'T', 'L', 'B', 'R': coordenadas do retângulo envolvente de um componente conexo,
+        respectivamente: topo, esquerda, baixo e direita.
+    """
+    
+
+
+
+
 
 def rotula (img, largura_min, altura_min, n_pixels_min):
     '''Rotulagem usando flood fill. Marca os objetos da imagem com os valores
@@ -94,14 +131,16 @@ respectivamente: topo, esquerda, baixo e direita.'''
     label = 1
 
     img_ = np.where( img == 1 , -1, 0)
+    blobs =[]
 
     for linha in range(rows):
         for coluna in range(cols):
             # Tem arroz aqui
             if (img_[linha][coluna] == -1):
-                aux = inunda(label,img_,linha,coluna,linha,linha,coluna,coluna,1)
-                print (aux)
-                label = label + 1
+                blob = FindBlob(label, img_,linha,coluna,[])
+                if(CheckBlob(blob)):
+                    blobs.append(blob)
+                    label = label + 1
 
     return label
 #===============================================================================
@@ -132,7 +171,8 @@ def main ():
     cv2.imwrite ('01 - binarizada.png', img*255)
 
     start_time = timeit.default_timer ()
-    componentes = rotula (img, LARGURA_MIN, ALTURA_MIN, N_PIXELS_MIN)
+    componentes, img_ = rotula (img, LARGURA_MIN, ALTURA_MIN, N_PIXELS_MIN)
+    #cv2.imwrite ('02 - teste.png', img_)
     # n_componentes = len (componentes)
     # print ('Tempo: %f' % (timeit.default_timer () - start_time))
     # print ('%d componentes detectados.' % n_componentes)
