@@ -16,9 +16,9 @@ INPUT_IMAGE =  'arroz.bmp'  #documento-3mp
 
 # TODO: ajuste estes parâmetros!
 NEGATIVO = False
-THRESHOLD = 0.6     #0.4
-ALTURA_MIN = 10     #5
-LARGURA_MIN = 10    #5
+THRESHOLD = 0.6     
+ALTURA_MIN = 10     
+LARGURA_MIN = 10    
 N_PIXELS_MIN = 10
 
 #===============================================================================
@@ -36,11 +36,12 @@ Valor de retorno: versão binarizada da img_in.'''
     # Dica/desafio: usando a função np.where, da para fazer a binarização muito
     # rapidamente, e com apenas uma linha de código!
 
-    rows, cols, channels = img.shape
     img_out = np.where( img > threshold, 1, 0)
 
     return img_out 
+
 #-------------------------------------------------------------------------------
+# Funcao de inundacao
 def FindBlob (label,img, y0,x0, blob):
     # Marca o arroz com o valor dele
     img[y0][x0] = label
@@ -64,17 +65,21 @@ def FindBlob (label,img, y0,x0, blob):
 
     return blob
 
+# Checa a validade do blob como tendo um tamanho suficiente
 def CheckBlob(blob, largura_min, altura_min, n_pixels_min):
     
+    # N de pixels equivale ao tamanho do blob
     n_pixels = len(blob)
     if(n_pixels < n_pixels_min):
         return False
     
+    # Define os limites do blob
     topo = blob[0]['y']
     baixo = blob[0]['y']
     esquerda = blob[0]['x']
     direita = blob[0]['x']
-
+    
+    # Varre as posicoes, encontrando os limites do blob
     for pos in blob:
         if(topo > pos['y']):
             topo = pos['y']
@@ -85,11 +90,15 @@ def CheckBlob(blob, largura_min, altura_min, n_pixels_min):
         if(esquerda > pos['x']):
             esquerda = pos['x']
 
+    # Verifica altura e largura do blob encontrado
     if((baixo - topo) < altura_min):
         return False
     if((direita - esquerda) < largura_min):
         return False
     
+    # Estabelece uma lista com os valores encontrados
+    # Uma posicao da lista consta label, numero de pixels do blob
+    # Posicao do topo, esquerda, baixo e direita dos pixels limites
     res = {
         "label": blob[0]['label'],
         "n_pixels": n_pixels,
@@ -98,7 +107,7 @@ def CheckBlob(blob, largura_min, altura_min, n_pixels_min):
         'B':baixo, 
         'R': direita,
     }
-    print(res)
+
     return res
 
 def rotula (img, largura_min, altura_min, n_pixels_min, img_out):
@@ -123,15 +132,25 @@ respectivamente: topo, esquerda, baixo e direita.'''
     
     rows, cols, channels = img.shape
     label = 1
+    # Difere o pixel marcado com 1, para começar o label como 1.
     img_ = np.where( img == 1 , -1, 0)
+
+    # Define uma lista de espacos identificados como arroz
     blobs =[]
+
+    # Procura na imagem pixels brancos
     for linha in range(rows):
         for coluna in range(cols):
-            # Tem arroz aqui
+            
+            # Encontra pixel capaz de ser arroz
             if (img_[linha][coluna] == -1):
+                # Chama a funcao que retorna o blob com uma lista de posicoes
                 blob = FindBlob(label, img_,linha,coluna,[])
+                
+                # Verifica se o blob encontrado e valido
                 checkedBlob = CheckBlob(blob, largura_min, altura_min, n_pixels_min)
                
+                # Se blob encontrado e valido, adiciona na lista final
                 if(checkedBlob):
                     blobs.append(checkedBlob)
                     label = label + 1
