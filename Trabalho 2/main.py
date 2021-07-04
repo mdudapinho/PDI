@@ -101,41 +101,46 @@ def integral(img):
         print("Linhas:",linha)
         for coluna in range(cols):
             buffer[linha][coluna] = buffer[linha][coluna] + buffer[linha-1][coluna]
-
+    
     # Janela deslizante
     for linha in range(rows):        
         print("Linhas:",linha)
         for coluna in range(cols):
-            media = 0
 
             ponto_superior = linha - int(JANELA_H/2) - 1
-            if (ponto_superior < 0 ):
-                ponto_superior = 0 
-
+            
             ponto_inferior = linha + int(JANELA_H/2)
-            if (ponto_superior > rows ):
-                ponto_superior = rows 
+            if (ponto_inferior > rows - 1 ):
+                ponto_inferior = rows - 1
 
             ponto_esquerda = coluna - int(JANELA_W/2) - 1 
-            if (ponto_esquerda < 0 ):
-                ponto_esquerda = 0 
-            
+                        
             ponto_direita = coluna + int(JANELA_W/2) 
-            if (ponto_direita > cols ):
-                ponto_esquerda = cols
+            if (ponto_direita > cols - 1 ):
+                ponto_direita = cols - 1
 
-            janela_w = ponto_direita - ponto_esquerda
-            janela_h = ponto_inferior - ponto_superior
+            janela_w = JANELA_W #(ponto_direita - ponto_esquerda) + 1
+            janela_h = JANELA_H #(ponto_inferior - ponto_superior) + 1
 
             # Definindo os 4 pontos
             # Caso geral
-            inferior_direita = buffer[ponto_inferior][ponto_direita]
-            inferior_esquerda = buffer[ponto_inferior][ponto_esquerda]
-            superior_direita = buffer[ponto_superior][ponto_direita]
-            superior_esquerda = buffer[ponto_superior][ponto_esquerda]
-            media = (inferior_direita - inferior_esquerda - superior_direita + superior_esquerda)
-            media /=  janela_h*janela_w
-            
+            soma = buffer[ponto_inferior][ponto_direita]
+            if(ponto_superior >= 0 ):
+                soma = soma - buffer[ponto_superior][ponto_direita]
+            if(ponto_esquerda >= 0 ):
+                soma = soma - buffer[ponto_inferior][ponto_esquerda]
+            if(ponto_superior >= 0 and ponto_esquerda >= 0 ):
+                soma = soma + buffer[ponto_superior][ponto_esquerda]
+            media = soma/ (janela_w * janela_h)
+            print("media: ", media)
+
+            # inferior_direita = buffer[ponto_inferior][ponto_direita]
+            # inferior_esquerda = buffer[ponto_inferior][ponto_esquerda]
+            # superior_direita = buffer[ponto_superior][ponto_direita]
+            # superior_esquerda = buffer[ponto_superior][ponto_esquerda]
+            # media = (inferior_direita - inferior_esquerda - superior_direita + superior_esquerda)
+            # media /=  janela_h*janela_w
+            #print("media: ", media)
             img_out[linha][coluna] = media
 
     return img_out
