@@ -119,9 +119,16 @@ def integral(img):
             if (ponto_direita > cols - 1 ):
                 ponto_direita = cols - 1
 
-            janela_w = JANELA_W #(ponto_direita - ponto_esquerda) + 1
-            janela_h = JANELA_H #(ponto_inferior - ponto_superior) + 1
+            janela_w = ponto_direita + 1
+            if(ponto_esquerda >= 0 ):
+                janela_w = ponto_direita - ponto_esquerda
 
+            janela_h = ponto_inferior + 1
+            if(ponto_superior >= 0 ):
+                janela_h = ponto_inferior - ponto_superior
+            #print("janela_h: ", janela_h)
+            #print("janela_w: ", janela_w)
+            
             # Definindo os 4 pontos
             # Caso geral
             soma = buffer[ponto_inferior][ponto_direita]
@@ -131,7 +138,7 @@ def integral(img):
                 soma = soma - buffer[ponto_inferior][ponto_esquerda]
             if(ponto_superior >= 0 and ponto_esquerda >= 0 ):
                 soma = soma + buffer[ponto_superior][ponto_esquerda]
-            media = soma/ (janela_w * janela_h)
+            media = soma / (janela_w * janela_h)
             print("media: ", media)
 
             # inferior_direita = buffer[ponto_inferior][ponto_direita]
