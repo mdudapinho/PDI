@@ -17,19 +17,25 @@ INPUT_IMAGE =  'a01.bmp'  #documento-3mp
 JANELA_H = 5
 JANELA_W = 5
 MODE = 0 # 0:INGENUO, 1:SEPRAVEL, 2:INTEGRAL, 3:TODOS
+LIMITE = 0.004# numero magico
+ 
 #===============================================================================
 
 def comparador(img_1,img_2,rows, cols):
-    
     sum = 0
 
-    for linha in range(rows):
-        for coluna in range(cols):
-            if(img_1[linha][coluna] == img_2[linha][coluna] ):
+    #desconta as margens
+    r = rows-int(JANELA_H/2) - int(JANELA_H/2)
+    c = cols-int(JANELA_W/2) - int(JANELA_W/2)
+    
+    for linha in range(int(JANELA_H/2),rows-int(JANELA_H/2)):        
+        for coluna in range(int(JANELA_W/2),cols-int(JANELA_W/2)):
+            dif = img_1[linha][coluna] - img_2[linha][coluna] 
+            if(dif < LIMITE):
                 sum += 1
-    sum = sum/(rows*cols)
-    print("As imagens sao ", sum*100, "% parecidas")
 
+    sum = sum/(r*c)
+    print("\t\tAs imagens sao ", sum*100, "% parecidas")
 
 def opencvblur(img):
     # blur (img, largura, altura)
@@ -161,55 +167,56 @@ def main ():
     # Mantém uma cópia colorida para desenhar a saída.
     img_color = cv2.cvtColor (img, cv2.COLOR_GRAY2BGR)
 
-    # cv2.imshow ('01 - binarizada', img)
-    # cv2.imwrite ('01 - binarizada.png', img*255)
-
-    img_opencv = opencvblur(img)
+    cv2.imshow ('img entrada opencv',img)
+    cv2.waitKey ()
+    img_out_opencv = opencvblur(img)
     
-    start_time = timeit.default_timer ()
-   
     rows_, cols_, channels = img.shape
+
     if(MODE == 0  or MODE == 3):
         # INGENUO
+        img_ingenuo = img
+        cv2.imshow ('img entrada ingenuo',img_ingenuo)
+        cv2.waitKey ()
+        start_time = timeit.default_timer ()
         print("Iniciou ingenuo")
-        img_out_ingenuo = ingenuo(img)
-        print ('Tempo: %f' % (timeit.default_timer () - start_time))
-        print("comparador (openCV e ingenuo: ")
-        comparador(img_out_ingenuo,img_opencv,rows_, cols_)
+        img_out_ingenuo = ingenuo(img_ingenuo)
+        print ('\tTempo: %f' % (timeit.default_timer () - start_time))
+        print("\tcomparador (openCV e ingenuo: ")
+        comparador(img_out_ingenuo,img_out_opencv,rows_, cols_)
+        cv2.imwrite ('out_ingenuo.png', img_out_ingenuo*255)
+        cv2.imshow ('saida ingenuo',img_out_ingenuo)
 
     if(MODE == 1 or MODE == 3):
         # SEPARAVEL
-        #start_time = timeit.default_timer ()
+        img_separavel = img
+        cv2.imshow ('img entrada separavel',img_separavel)
+        cv2.waitKey ()
+        start_time = timeit.default_timer ()
         print("Iniciou separavel")
-        img_out_separavel = separavel(img)
-        print ('Tempo: %f' % (timeit.default_timer () - start_time))
-        print("comparador (openCV e sepravel: ")
-        comparador(img_out_separavel,img_opencv,rows_, cols_)
+        img_out_separavel = separavel(img_separavel)
+        print ('\tTempo: %f' % (timeit.default_timer () - start_time))
+        print("\tcomparador (openCV e sepravel: ")
+        comparador(img_out_separavel,img_out_opencv,rows_, cols_)
+        cv2.imwrite ('out_separavel.png', img_out_separavel*255)
+        cv2.imshow ('saida separavel', img_out_separavel)
         
     if(MODE == 2 or MODE == 3):
         # INTEGRAL
-        #start_time = timeit.default_timer ()
+        img_integral = img
+        cv2.imshow ('img entrada integral',img_integral)
+        cv2.waitKey ()
+        start_time = timeit.default_timer ()
         print("Iniciou Integral")
-        img_out_integral = integral(img)
-        print ('Tempo: %f' % (timeit.default_timer () - start_time))
-        print("comparador (openCV e integral: ")
-        comparador(img_out_integral,img_opencv,rows_, cols_)
-        
-    #img_comparada = comparador(img_out_separavel,img_opencv)
-
-    cv2.imwrite ('out_opencv.png', img_opencv*255)
-    cv2.imshow ('saida opencv',img_opencv)
-
-    if(MODE == 0  or MODE == 3):
-        cv2.imwrite ('out_ingenuo.png', img_out_ingenuo*255)
-        cv2.imshow ('saida ingenuo',img_out_ingenuo)
-    if(MODE == 1 or MODE == 3):
-        cv2.imwrite ('out_separavel.png', img_out_separavel*255)
-        cv2.imshow ('saida separavel', img_out_separavel)
-    if(MODE == 2 or MODE == 3):
+        img_out_integral = integral(img_integral)
+        print ('\tTempo: %f' % (timeit.default_timer () - start_time))
+        print("\tcomparador (openCV e integral: ")
+        comparador(img_out_integral,img_out_opencv,rows_, cols_)
         cv2.imwrite ('out_integral.png', img_out_integral*255)
         cv2.imshow ('saida integral',img_out_integral)
 
+    cv2.imwrite ('out_opencv.png', img_out_opencv*255)
+    cv2.imshow ('saida opencv',img_out_opencv)
 
     cv2.waitKey ()
     cv2.destroyAllWindows ()
