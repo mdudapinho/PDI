@@ -82,19 +82,71 @@ def separavel(img):
 
     return img_out
 
+def calculaMedia(linha, coluna, buffer_, rows, cols):
+    ponto_superior = linha - int(JANELA_H/2) - 1
+            
+    ponto_inferior = linha + int(JANELA_H/2)
+    if (ponto_inferior > rows - 1 ):
+        ponto_inferior = rows - 1
+
+    ponto_esquerda = coluna - int(JANELA_W/2) - 1 
+    
+    ponto_direita = coluna + int(JANELA_W/2) 
+    if (ponto_direita > cols - 1 ):
+        ponto_direita = cols - 1
+
+    janela_w = ponto_direita + 1
+    if(ponto_esquerda >= 0 ):
+        janela_w = ponto_direita - ponto_esquerda
+
+    janela_h = ponto_inferior + 1
+    if(ponto_superior >= 0 ):
+        janela_h = ponto_inferior - ponto_superior
+
+    # Definindo os 4 pontos
+    print("-------")
+    print("coluna: ", coluna)
+    print("ponto_superior: ", ponto_superior)
+    print("ponto_inferior: ", ponto_inferior)
+    print("ponto_esquerda: ", ponto_esquerda)
+    print("ponto_direita: ", ponto_direita)
+    print("janela_w: ", janela_w)
+    print("janela_h: ", janela_h)
+
+    print("soma: ", buffer_[ponto_inferior][ponto_direita])
+    soma = buffer_[ponto_inferior][ponto_direita]
+    if(ponto_superior >= 0 ):
+        soma = soma - buffer_[ponto_superior][ponto_direita]
+        print("sup: diminui ", buffer_[ponto_superior][ponto_direita], " -> soma: ", soma)
+    if(ponto_esquerda >= 0 ):
+        soma = soma - buffer_[ponto_inferior][ponto_esquerda]
+        print("esq: diminui ", buffer_[ponto_inferior][ponto_esquerda], " -> soma: ", soma)
+    if(ponto_superior >= 0 and ponto_esquerda >= 0 ):
+        soma = soma + buffer_[ponto_superior][ponto_esquerda]
+        print("dois: soma ", buffer_[ponto_superior][ponto_esquerda], " -> soma: ", soma)
+    
+    media = soma / (janela_w * janela_h)
+    if(media != 1):
+        print("\tsoma: ", soma)
+        print("\tmedia: ", media)
+    
+    return media
+
 def integral(img):
 
+    img_aux = np.where( img > 0, 1, 1)
     rows, cols, channels = img.shape
-    img_out = img
-    buffer = img
-
+    img_out = img_aux
+    buffer = img_aux
+    
     # Imagem integral
     ## Percorro a coluna 
     ## Primeira coluna da imagem ja esta formada
+    
     for linha in range(rows):        
         print("Linhas:",linha)
         for coluna in range(1,cols):
-            buffer[linha][coluna] = img[linha][coluna] + buffer[linha][coluna-1]
+            buffer[linha][coluna] = img_aux[linha][coluna] + buffer[linha][coluna-1]
 
     ## Percorro por linha 
     for linha in range(1,rows):        
@@ -102,53 +154,20 @@ def integral(img):
         for coluna in range(cols):
             buffer[linha][coluna] = buffer[linha][coluna] + buffer[linha-1][coluna]
     
+    # for linha in range(rows):        
+    #     for coluna in range(cols):    
+    #         if(buffer[linha][coluna] != (linha+1)*(coluna+1)):
+    #             print("buffer[", linha, "][", coluna, "]: ", buffer[linha][coluna])
+    
     # Janela deslizante
     for linha in range(rows):        
         print("Linhas:",linha)
-        for coluna in range(cols):
-
-            ponto_superior = linha - int(JANELA_H/2) - 1
-            
-            ponto_inferior = linha + int(JANELA_H/2)
-            if (ponto_inferior > rows - 1 ):
-                ponto_inferior = rows - 1
-
-            ponto_esquerda = coluna - int(JANELA_W/2) - 1 
-                        
-            ponto_direita = coluna + int(JANELA_W/2) 
-            if (ponto_direita > cols - 1 ):
-                ponto_direita = cols - 1
-
-            janela_w = ponto_direita + 1
-            if(ponto_esquerda >= 0 ):
-                janela_w = ponto_direita - ponto_esquerda
-
-            janela_h = ponto_inferior + 1
-            if(ponto_superior >= 0 ):
-                janela_h = ponto_inferior - ponto_superior
-            #print("janela_h: ", janela_h)
-            #print("janela_w: ", janela_w)
-            
-            # Definindo os 4 pontos
-            # Caso geral
-            soma = buffer[ponto_inferior][ponto_direita]
-            if(ponto_superior >= 0 ):
-                soma = soma - buffer[ponto_superior][ponto_direita]
-            if(ponto_esquerda >= 0 ):
-                soma = soma - buffer[ponto_inferior][ponto_esquerda]
-            if(ponto_superior >= 0 and ponto_esquerda >= 0 ):
-                soma = soma + buffer[ponto_superior][ponto_esquerda]
-            media = soma / (janela_w * janela_h)
-            print("media: ", media)
-
-            # inferior_direita = buffer[ponto_inferior][ponto_direita]
-            # inferior_esquerda = buffer[ponto_inferior][ponto_esquerda]
-            # superior_direita = buffer[ponto_superior][ponto_direita]
-            # superior_esquerda = buffer[ponto_superior][ponto_esquerda]
-            # media = (inferior_direita - inferior_esquerda - superior_direita + superior_esquerda)
-            # media /=  janela_h*janela_w
-            #print("media: ", media)
-            img_out[linha][coluna] = media
+        # for y in range(rows):        
+        #     for x in range(cols):    
+        #         if(buffer[y][x] != (y+1)*(x+1)):
+        #             print("buffer[", y, "][", x, "]: ", buffer[y][x])
+        for coluna in range(cols):           
+            img_out[linha][coluna] = calculaMedia(linha, coluna, buffer, rows, cols)
 
     return img_out
 
@@ -182,11 +201,10 @@ def main ():
     # img_out_separavel = separavel(img)
 
     img_out_integral = integral(img)
-
     print ('Tempo: %f' % (timeit.default_timer () - start_time))
 
     #img_comparada = comparador(img_out_separavel,img_opencv)
-
+    cv2.imwrite ('out.png', img_out_integral*255)
     cv2.imshow ('saida borrada ', img_out_integral)
     cv2.imshow ('saida opencv',img_opencv)
     # cv2.imshow ('comparador',img_comparada)
