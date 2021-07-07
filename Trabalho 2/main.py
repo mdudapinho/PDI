@@ -13,33 +13,35 @@ import cv2
 
 #===============================================================================
 
-INPUT_IMAGE =  r'.\\Exemplos\\b01 - Original.bmp'  #documento-3mp
+INPUT_IMAGE =  r"./Exemplos/b01 - Original.bmp"  #documento-3mp
 JANELA_H = 3
 JANELA_W = 3
-MODE = 2 # 0:INGENUO, 1:SEPRAVEL, 2:INTEGRAL, 3:TODOS
-LIMITE = 0.004 # Indice que limita a diferenca por pixel no comparador
+MODE = 3 # 0:INGENUO, 1:SEPRAVEL, 2:INTEGRAL, 3:TODOS
+LIMITE = 1.000/255 # Indice que limita a diferenca por pixel no comparador
  
 #===============================================================================
 
 def comparador(img_1,img_2,rows, cols, integral = False):
     sum = 0
-
-    #Se nao for do algoritmo imagens integrais, descarta as bordas
+    img_compare = np.zeros((rows, cols))
+    
     if(not integral):
         #desconta as margens
         r = rows-int(JANELA_H/2)*2
         c = cols-int(JANELA_W/2)*2
         
         # Compara pixel a pixel
-        for linha in range(int(JANELA_H/2),rows-int(JANELA_H/2)):        
-            for coluna in range(int(JANELA_W/2),cols-int(JANELA_W/2)):
-                dif = img_1[linha][coluna] - img_2[linha][coluna] 
-                if(dif < LIMITE):
+        for linha in range(int(JANELA_H/2),r):        
+            for coluna in range(int(JANELA_W/2),c):
+                dif = abs(img_1[linha][coluna] - img_2[linha][coluna]) 
+                img_compare[linha][coluna] = dif
+                if(dif <= LIMITE):
                     sum += 1
+                #else:
+                    #print("\t\t diferenca na linha ", linha, " e coluna ", coluna)
 
-        sum = sum/(r*c)
+        sum = sum/(( r - int(JANELA_H/2)) * (c - int(JANELA_W/2)))
         print("\t\tAs imagens sao ", round(sum*100, 2), "% parecidas")
-        return
 
     # Se imagensIntegrais, compara a imagem inteira sem excluir o 
     # tamanho das janelas das bordas
@@ -47,13 +49,14 @@ def comparador(img_1,img_2,rows, cols, integral = False):
         # Compara pixel a pixel
         for linha in range(rows):        
             for coluna in range(cols):
-                dif = img_1[linha][coluna] - img_2[linha][coluna]
+                dif = abs(img_1[linha][coluna] - img_2[linha][coluna])
+                img_compare[linha][coluna] = dif
                 if(dif < LIMITE):
                     sum += 1
-
         sum = sum / (rows * cols)
         print("\t\tAs imagens sao ", round(sum*100, 2), "% parecidas")
-        return
+    
+    return img_compare
 
 def opencvblur(img):
     # blur (img, largura, altura)
@@ -63,7 +66,7 @@ def opencvblur(img):
 def ingenuo(img):
     
     rows, cols, channels = img.shape
-    img_out = img
+    img_out = np.zeros((rows, cols))
 
     for linha in range(int(JANELA_H/2),rows-int(JANELA_H/2)):        
         for coluna in range(int(JANELA_W/2),cols-int(JANELA_W/2)):
@@ -79,8 +82,8 @@ def ingenuo(img):
 def separavel(img):
     
     rows, cols, channels = img.shape
-    img_out = img
-    buffer = img
+    img_out = np.zeros((rows, cols))
+    buffer = np.zeros((rows, cols))
     
     # HORIZONTAL
     for linha in range(int(JANELA_H/2),rows-int(JANELA_H/2)):        
@@ -103,16 +106,19 @@ def separavel(img):
     return img_out
 
 def createBuffer(rows, cols, img_aux):
-    buffer = img_aux
+    buffer = np.zeros((rows, cols)) 
     
     ## Percorre na linha, acumulando os valores a esquerda 
-    ## Primeira coluna da imagem ja esta formada
     for linha in range(rows):        
-        for coluna in range(1,cols):
+        for coluna in range(cols):
+            ## Primeira coluna da imagem copia o valor
+            if(linha == 0 ):
+                buffer[linha][coluna] = img_aux[linha][coluna]
+            
             # Buffer = Intensidade no pixel + Pixel a esquerda
             buffer[linha][coluna] = img_aux[linha][coluna] + buffer[linha][coluna-1]
 
-    ## Percorro por linha
+    ## Percorre por linha
     ## Acumulando o valor que esta em cima do pixel no buffer
     ## Completa a imagem integral 
     for linha in range(1,rows):        
@@ -166,7 +172,6 @@ def integral(img):
     # Imagem integral
     buffer = createBuffer(rows, cols, img)
     
-    #img_out com zeros
     img_out = np.zeros((rows, cols))
 
     # Janela deslizante
@@ -197,45 +202,39 @@ def main ():
 
     if(MODE == 0  or MODE == 3):
         # INGENUO
-        img_ingenuo = img
-        cv2.imshow ('img entrada ingenuo',img_ingenuo)
-        cv2.waitKey ()
         start_time = timeit.default_timer ()
         print("Iniciou ingenuo")
-        img_out_ingenuo = ingenuo(img_ingenuo)
+        img_out_ingenuo = ingenuo(img)
         print ('\tTempo: %f' % (timeit.default_timer () - start_time))
         print("\tcomparador (openCV e ingenuo: ")
-        comparador(img_out_ingenuo,img_out_opencv,rows_, cols_)
+        img_comp = comparador(img_out_ingenuo,img_out_opencv,rows_, cols_)
         cv2.imwrite ('out_ingenuo.png', img_out_ingenuo*255)
         cv2.imshow ('saida ingenuo',img_out_ingenuo)
+        cv2.imshow ('Comparador ingenuo x OpenCV',img_comp)
 
     if(MODE == 1 or MODE == 3):
         # SEPARAVEL
-        img_separavel = img
-        cv2.imshow ('img entrada separavel',img_separavel)
-        cv2.waitKey ()
         start_time = timeit.default_timer ()
         print("Iniciou separavel")
-        img_out_separavel = separavel(img_separavel)
+        img_out_separavel = separavel(img)
         print ('\tTempo: %f' % (timeit.default_timer () - start_time))
         print("\tcomparador (openCV e sepravel: ")
-        comparador(img_out_separavel,img_out_opencv,rows_, cols_)
+        img_comp = comparador(img_out_separavel,img_out_opencv,rows_, cols_)
         cv2.imwrite ('out_separavel.png', img_out_separavel*255)
         cv2.imshow ('saida separavel', img_out_separavel)
+        cv2.imshow ('Comparador separavel x OpenCV',img_comp)
         
     if(MODE == 2 or MODE == 3):
         # INTEGRAL
-        img_integral = img
-        cv2.imshow ('img entrada integral',img_integral)
-        cv2.waitKey ()
         start_time = timeit.default_timer ()
         print("Iniciou Integral")
-        img_out_integral = integral(img_integral)
+        img_out_integral = integral(img)
         print ('\tTempo: %f' % (timeit.default_timer () - start_time))
         print("\tcomparador (openCV e integral): ")
-        comparador(img_out_integral,img_out_opencv,rows_, cols_,True)
+        img_comp = comparador(img_out_integral,img_out_opencv,rows_, cols_,True)
         cv2.imwrite ('out_integral.png', img_out_integral*255)
         cv2.imshow ('saida integral',img_out_integral)
+        cv2.imshow ('Comparador integral x OpenCV',img_comp)
 
     # Comparacao com filtro do openCV
     cv2.imwrite ('out_opencv.png', img_out_opencv*255)
