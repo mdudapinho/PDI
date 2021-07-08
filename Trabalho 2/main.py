@@ -17,7 +17,7 @@ INPUT_IMAGE =  r"./Exemplos/b01 - Original.bmp"  #documento-3mp
 JANELA_H = 3
 JANELA_W = 3
 MODE = 3 # 0:INGENUO, 1:SEPRAVEL, 2:INTEGRAL, 3:TODOS
-LIMITE = 1.000/255 # Indice que limita a diferenca por pixel no comparador
+LIMITE = 1.000/255 # Indice que limita a diferenca por pixel no comparador 
  
 #===============================================================================
 
@@ -37,9 +37,6 @@ def comparador(img_1,img_2,rows, cols, integral = False):
                 img_compare[linha][coluna] = dif
                 if(dif <= LIMITE):
                     sum += 1
-                #else:
-                    #print("\t\t diferenca na linha ", linha, " e coluna ", coluna)
-
         sum = sum/(( r - int(JANELA_H/2)) * (c - int(JANELA_W/2)))
         print("\t\tAs imagens sao ", round(sum*100, 2), "% parecidas")
 
@@ -51,8 +48,9 @@ def comparador(img_1,img_2,rows, cols, integral = False):
             for coluna in range(cols):
                 dif = abs(img_1[linha][coluna] - img_2[linha][coluna])
                 img_compare[linha][coluna] = dif
-                if(dif < LIMITE):
+                if(dif <= LIMITE):
                     sum += 1
+
         sum = sum / (rows * cols)
         print("\t\tAs imagens sao ", round(sum*100, 2), "% parecidas")
     
@@ -60,7 +58,9 @@ def comparador(img_1,img_2,rows, cols, integral = False):
 
 def opencvblur(img):
     # blur (img, largura, altura)
-    img_out = cv2.blur(img,(JANELA_W,JANELA_H))
+    # borderType seleciona o tipo de tratamento que o opencv vai fazer
+    # https://docs.opencv.org/4.5.2/d2/de8/group__core__array.html#gga209f2f4869e304c82d07739337eae7c5afe14c13a4ea8b8e3b3ef399013dbae01
+    img_out = cv2.blur(img,(JANELA_W,JANELA_H),borderType=cv2.BORDER_DEFAULT)
     return img_out
 
 def ingenuo(img):
@@ -95,7 +95,7 @@ def separavel(img):
             for x in range(coluna-int(JANELA_W/2),coluna+int(JANELA_W/2)+1):
                 soma += img[linha][x]
             buffer[linha][coluna] = soma / JANELA_W
-
+            
     # VERTICAL
     for linha in range(int(JANELA_H/2),rows-int(JANELA_H/2)):        
         for coluna in range(int(JANELA_W/2),cols-int(JANELA_W/2)):
@@ -104,7 +104,7 @@ def separavel(img):
             for y in range(linha-int(JANELA_H/2),linha+int(JANELA_H/2)+1):
                 soma += buffer[y][coluna]
             img_out[linha][coluna] = soma / JANELA_H
-
+            
     return img_out
 
 def createBuffer(rows, cols, img_aux):
