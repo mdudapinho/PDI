@@ -86,7 +86,9 @@ def separavel(img):
     buffer = np.zeros((rows, cols))
     
     # HORIZONTAL
-    for linha in range(int(JANELA_H/2),rows-int(JANELA_H/2)):        
+    # Nao posso ignorar as somas realizadas nas linhas anteriores
+    # Portanto, o inicio e no zero.
+    for linha in range(rows-int(JANELA_H/2)):        
         for coluna in range(int(JANELA_W/2),cols-int(JANELA_W/2)):
             soma = 0
             # iteracao na horizontal
