@@ -13,9 +13,9 @@ import cv2
 
 #===============================================================================
 
-INPUT_IMAGE =  r"./Exemplos/b01 - Original.bmp"  #documento-3mp
-JANELA_H = 3
-JANELA_W = 3
+INPUT_IMAGE =  r"./Exemplos/a01 - Original.bmp"  #documento-3mp
+JANELA_H = 11
+JANELA_W = 15
 MODE = 3 # 0:INGENUO, 1:SEPRAVEL, 2:INTEGRAL, 3:TODOS
 LIMITE = 1.000/255 # Indice que limita a diferenca por pixel no comparador 
  
@@ -23,7 +23,7 @@ LIMITE = 1.000/255 # Indice que limita a diferenca por pixel no comparador
 
 def comparador(img_1,img_2,rows, cols, integral = False):
     sum = 0
-    img_compare = np.zeros((rows, cols))
+    img_compare = np.zeros(img_1.shape)
     
     if(not integral):
         #desconta as margens
@@ -33,8 +33,8 @@ def comparador(img_1,img_2,rows, cols, integral = False):
         # Compara pixel a pixel
         for linha in range(int(JANELA_H/2),r):        
             for coluna in range(int(JANELA_W/2),c):
-                dif = abs(img_1[linha][coluna] - img_2[linha][coluna]) 
-                img_compare[linha][coluna] = dif
+                dif = abs(img_1[linha][coluna][0] - img_2[linha][coluna][0]) 
+                img_compare[linha][coluna][0] = dif
                 if(dif <= LIMITE):
                     sum += 1
         sum = sum/(( r - int(JANELA_H/2)) * (c - int(JANELA_W/2)))
@@ -46,8 +46,8 @@ def comparador(img_1,img_2,rows, cols, integral = False):
         # Compara pixel a pixel
         for linha in range(rows):        
             for coluna in range(cols):
-                dif = abs(img_1[linha][coluna] - img_2[linha][coluna])
-                img_compare[linha][coluna] = dif
+                dif = abs(img_1[linha][coluna][0] - img_2[linha][coluna][0])
+                img_compare[linha][coluna][0] = dif
                 if(dif <= LIMITE):
                     sum += 1
 
@@ -65,8 +65,8 @@ def opencvblur(img):
 
 def ingenuo(img):
     
-    rows, cols, channels = img.shape
-    img_out = np.zeros((rows, cols))
+    rows, cols, _ = img.shape
+    img_out = np.zeros(img.shape)
 
     for linha in range(int(JANELA_H/2),rows-int(JANELA_H/2)):        
         for coluna in range(int(JANELA_W/2),cols-int(JANELA_W/2)):
@@ -82,8 +82,8 @@ def ingenuo(img):
 def separavel(img):
     
     rows, cols, channels = img.shape
-    img_out = np.zeros((rows, cols))
-    buffer = np.zeros((rows, cols))
+    img_out = np.zeros(img.shape)
+    buffer = np.zeros(img.shape)
     
     # HORIZONTAL
     # Nao posso ignorar as somas realizadas nas linhas anteriores
@@ -108,7 +108,7 @@ def separavel(img):
     return img_out
 
 def createBuffer(rows, cols, img_aux):
-    buffer = np.zeros((rows, cols)) 
+    buffer = np.zeros(img_aux.shape) 
     
     ## Percorre na linha, acumulando os valores a esquerda 
     for linha in range(rows):        
@@ -174,7 +174,7 @@ def integral(img):
     # Imagem integral
     buffer = createBuffer(rows, cols, img)
     
-    img_out = np.zeros((rows, cols))
+    img_out = np.zeros(img.shape)
 
     # Janela deslizante
     for linha in range(rows):        
@@ -186,16 +186,12 @@ def integral(img):
 def main ():
 
     # Abre a imagem em escala de cinza.
-    img = cv2.imread (INPUT_IMAGE, cv2.IMREAD_GRAYSCALE)
+    img = cv2.imread (INPUT_IMAGE)
     if img is None:
         print ('Erro abrindo a imagem.\n')
         sys.exit ()
 
-    img = img.reshape ((img.shape [0], img.shape [1], 1))
     img = img.astype (np.float32) / 255
-
-    # Mantem uma copia colorida para desenhar a saida
-    img_color = cv2.cvtColor (img, cv2.COLOR_GRAY2BGR)
 
     # Calcula filtro com OpenCV
     img_out_opencv = opencvblur(img)
