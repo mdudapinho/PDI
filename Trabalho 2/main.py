@@ -13,9 +13,10 @@ import cv2
 
 #===============================================================================
 
-INPUT_IMAGE =  r"./Exemplos/a01 - Original.bmp"  #documento-3mp
-JANELA_H = 11
-JANELA_W = 15
+INPUT_IMAGE =  r"./Exemplos/b01 - Original.bmp"  #documento-3mp
+# Insira apenas valores impares
+JANELA_H = 7
+JANELA_W = 7
 MODE = 3 # 0:INGENUO, 1:SEPRAVEL, 2:INTEGRAL, 3:TODOS
 LIMITE = 1.000/255 # Indice que limita a diferenca por pixel no comparador 
  
