@@ -60,7 +60,7 @@ def FindBlob (label,img, y0,x0, blob):
         blob = FindBlob(label,img,y0,x0-1, blob)
     
     # Tem vizinho pra cima
-    if (y0-1 > 0  and img[y0-1][x0] == -1 ):
+    if (y0-1 >= 0  and img[y0-1][x0] == -1 ):
         blob = FindBlob(label,img,y0-1,x0, blob)
 
     # Tem vizinho pra baixo
@@ -135,6 +135,8 @@ respectivamente: topo, esquerda, baixo e direita.'''
     # Use a abordagem com flood fill recursivo.
     
     rows, cols, channels = img.shape
+    print("Linhas",rows)
+    
     label = 1
     # Difere o pixel marcado com 1, para começar o label como 1.
     img_ = np.where( img == 1 , -1, 0)
