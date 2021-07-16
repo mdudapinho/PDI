@@ -35,8 +35,9 @@ def comparador(img_1,img_2,):
     for l in range(linha):        
         for c in range(coluna):
             dif = abs(img_1[l][c][0] - img_2[l][c][0]) 
+            img_compare[l][c] = dif
             if(dif <= LIMITE):
-                img_compare[l][c] = 1
+                #img_compare[l][c] = 1
                 sum += 1
     sum = sum/(linha*coluna)
     print("\t\tAs imagens sao ", round(sum*100, 2), "% parecidas")
@@ -114,8 +115,10 @@ def main():
 
     #cv2.imshow ('img_orig', imgBGR)
     #cv2.imshow ('brightPass', brightPass)
-    cv2.imshow ('img_gaussian',img_gaussian)
-    cv2.imshow ('img_blur',img_blur)
+    img_gaussian = cv2.resize(img_gaussian, (int(img_gaussian.shape[1]*0.5), int(img_gaussian.shape[0]*0.5)))
+    img_blur = cv2.resize(img_blur, (int(img_blur.shape[1]*0.5), int(img_blur.shape[0]*0.5)))
+    cv2.imshow ('img_gaussian', img_gaussian)
+    cv2.imshow ('img_blur', img_blur)
     cv2.imshow('comparador',comparador(img_gaussian,img_blur))
     cv2.waitKey ()
     cv2.destroyAllWindows ()
