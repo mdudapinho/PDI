@@ -58,15 +58,32 @@ def Gaussian(img, mask):
     return img_blur
 
 def Blur(img, mask):
-    # blur (img, largura, altura,borderType=cv2.BORDER_DEFAULT)
-    # borderType seleciona o tipo de tratamento que o opencv vai fazer
-    # https://docs.opencv.org/4.5.2/d2/de8/group__core__array.html#gga209f2f4869e304c82d07739337eae7c5afe14c13a4ea8b8e3b3ef399013dbae01
+
+    img_aux = mask
+
+    # Primeira borra
+    for i in range(REP_BOXBLUR):
+            img_aux = cv2.addWeighted(img_aux,
+                                      (1-(1/(i+1))),
+                                      cv2.blur(img_aux,(JANELA * (i+1), JANELA * (i+1))),
+                                      (1/(i+1)),
+                                      0)
     
-    img_out = cv2.blur(mask,(JANELA,JANELA))
-    
-    for i in rang(REP-1):
-        for i in rang(REP_APX):
-            img_out += cv2.blur(img_out, JANELA * (i+1), JANELA * (i+1))
+    img_out = img_aux
+
+    # Borra mais REP-1 vezes
+    for _ in range(1,REP):
+        for i in range(REP_BOXBLUR):
+            img_aux = cv2.addWeighted(img_aux,
+                                      (1-(1/(i+1))),
+                                      cv2.blur(img_aux,(JANELA * (i+1), JANELA * (i+1))),
+                                      (1/(i+1)),
+                                      0)
+        
+        img_out = cv2.add(img_out,img_aux)
+
+    # Somar na imagem 
+    img_out = cv2.addWeighted(img,ALFA,img_out,BETA,0)
 
     return img_out
 
