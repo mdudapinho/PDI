@@ -45,12 +45,17 @@ def comparador(img_1,img_2,):
 
 def Gaussian(img, mask):
     
-    img_out = cv2.GaussianBlur(mask, (0,0), JANELA)
+    # Primeira borra 
+    img_blur = cv2.GaussianBlur(mask, (0,0), SIGMA)
 
-    for i in rang(REP-1):
-        img_out += cv2.GaussianBlur(img_out, (0,0), JANELA * (i+1))
+    # Borra mais REP-1 vezes
+    for i in range(1,REP):
+        img_blur = cv2.add(img_blur,cv2.GaussianBlur(img_blur, (0,0), SIGMA*(i+1) ))
 
-    return img_out
+    # Somar na imagem 
+    img_blur = cv2.addWeighted(img,ALFA,img_blur,BETA,0)
+
+    return img_blur
 
 def Blur(img, mask):
     # blur (img, largura, altura,borderType=cv2.BORDER_DEFAULT)
