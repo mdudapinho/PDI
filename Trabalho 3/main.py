@@ -13,15 +13,35 @@ import cv2
 
 #===============================================================================
 
-INPUT_IMAGE =  r"GT2.BMP"  
-# Insira apenas valores impares
-JANELA = 20
-REP = 5
-REP_APX = 4
+# INPUT_IMAGE =  r"./Wind Waker GC.bmp"
+INPUT_IMAGE =  r"GT2.BMP"
+SIGMA = 7
+JANELA = 15
+REP = 3
+REP_BOXBLUR = 3
+THRESHOLD = 128
+ALFA = 0.8
+BETA = 0.2
 
 LIMITE = 1.000/255 # Indice que limita a diferenca por pixel no comparador 
- 
 #===============================================================================
+
+def comparador(img_1,img_2,):
+    sum = 0
+    linha, coluna, channels = img_1.shape
+    img_compare = np.zeros(img_1.shape)
+        
+    # Compara pixel a pixel
+    for l in range(linha):        
+        for c in range(coluna):
+            dif = abs(img_1[l][c][0] - img_2[l][c][0]) 
+            if(dif <= LIMITE):
+                img_compare[l][c] = 1
+                sum += 1
+    sum = sum/(linha*coluna)
+    print("\t\tAs imagens sao ", round(sum*100, 2), "% parecidas")
+
+    return img_compare
 
 def Gaussian(img, mask):
     
@@ -47,32 +67,36 @@ def Blur(img, mask):
 
 
 def createMask(img):
-    return img
+    imgHLS = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
+    Lchannel = imgHLS[:,:,1]
+    mask = cv2.inRange(Lchannel, THRESHOLD/255, 1)
+    res = cv2.bitwise_and(img,img, mask= mask)
+
+    return res
 
 
 def main():
     # Abre a imagem em escala de cinza.
-    img = cv2.imread (INPUT_IMAGE)
-    if img is None:
+    imgBGR = cv2.imread(INPUT_IMAGE)
+    if imgBGR is None:
         print ('Erro abrindo a imagem.\n')
         sys.exit ()
 
+    # Normalizando com float
+    imgBGR = imgBGR.astype (np.float32) / 255
 
-    mask = createMask()
+    brightPass = createMask(imgBGR)
+    
+    img_gaussian = Gaussian(imgBGR, brightPass)
+    img_blur = Blur(imgBGR, brightPass)
 
-    img_gaussian = Gaussian(img, mask)
-    img_blur = Blur(img, mask)
-
-
-    cv2.imshow ('img', img)
-    cv2.imshow ('mask',mask)
+    #cv2.imshow ('img_orig', imgBGR)
+    #cv2.imshow ('brightPass', brightPass)
     cv2.imshow ('img_gaussian',img_gaussian)
     cv2.imshow ('img_blur',img_blur)
+    cv2.imshow('comparador',comparador(img_gaussian,img_blur))
     cv2.waitKey ()
     cv2.destroyAllWindows ()
-
-
-
 
 def main_Bogdan ():
 
