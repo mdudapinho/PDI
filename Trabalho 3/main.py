@@ -10,85 +10,112 @@ import sys
 import timeit
 import numpy as np
 import cv2
-from math import floor, sqrt
+from math import sqrt
 
 #===============================================================================
 
-# INPUT_IMAGE =  r"./Wind Waker GC.bmp"
-INPUT_IMAGE =  r"GT2.BMP"
+INPUT_IMAGE =  r"./Wind Waker GC.bmp"
+# INPUT_IMAGE =  r"GT2.BMP"
+
 SIGMA = 10
-REP = 4
+REP_GAUSSIAN = 4
 REP_BOXBLUR = 3
-THRESHOLD = 200
-ALFA = 0.85
-BETA = 0.15
+THRESHOLD = 128
 
-LIMITE = 1.000/255 # Indice que limita a diferenca por pixel no comparador 
+ALFA = 0.8
+BETA = 0.2
 #===============================================================================
 
-def comparador(img_1,img_2,):
-    sum = 0
-    linha, coluna, channels = img_1.shape
-    img_compare = np.zeros(img_1.shape)
-        
-    # Compara pixel a pixel
-    for l in range(linha):        
-        for c in range(coluna):
-            dif = abs(img_1[l][c][0] - img_2[l][c][0]) 
-            img_compare[l][c] = dif
-            if(dif <= LIMITE):
-                #img_compare[l][c] = 1
-                sum += 1
-    sum = sum/(linha*coluna)
-    print("\t\tAs imagens sao ", round(sum*100, 2), "% parecidas")
-
-    return img_compare
-
-def Gaussian(img, mask):
+def gaussian(img, mask):
+    """
+    Implementacao bloom com o filtro da Gaussiana.
     
+    Parametros:
+        img: Imagem original BGR.
+        mask: Mascara a ser utilizada apos passar pelo brightPass.
+
+    Variaveis:
+        mask_blur: Inicialmente recebe zeros no formato da imagem.
+                Esta e a variavel que recebe a mascara borrada
+        SIGMA: Fator interno na funcao cv2.GaussianBlur.
+        REP_GAUSSIAN: Macro com a quantidade de repeticoes do filtro gaussiana.
+    """
     # Inicializa blur com zeros
     mask_blur = np.zeros(img.shape, np.float32)
 
-    for exp in range(REP):
+    # Itera borrando a mascara com a gaussiana
+    for exp in range(REP_GAUSSIAN):
         mask_blur = cv2.add(mask_blur,cv2.GaussianBlur(mask, (0,0), SIGMA*pow(2,exp)))
+
+    # Soma na imagem final
+    img_blur = cv2.addWeighted(img,ALFA,mask_blur,BETA,0)
+
+    return img_blur
+
+def boxBlur(img, mask):
+    """
+    Implementacao bloom com o filtro da media.
+    
+    Parametros:
+        img: Imagem original BGR
+        mask: Mascara a ser utilizada apos passar pelo brightPass.
+
+    Variaveis:
+        mask_blur: Inicialmente recebe zeros no formato da imagem.
+                Esta e a variavel que recebe a mascara borrada
+        SIGMA: Fator interno na funcao cv2.GaussianBlur.
+        REP_GAUSSIAN: Macro com a quantidade de repeticoes do filtro gaussiana.
+    """ 
+    # Inicializa blur com zeros
+    mask_blur = np.zeros(img.shape, np.float32)
+
+    for exp in range(REP_GAUSSIAN):
+        mask_blur = cv2.add(mask_blur,gaussianBoxBlur(mask, SIGMA*pow(2,exp)))
 
     # Somar na imagem 
     img_blur = cv2.addWeighted(img,ALFA,mask_blur,BETA,0)
 
     return img_blur
 
-def Blur(img, mask):
+def janelaIdeal(sigma):
+    """
+    Calculo da janela ideal segundo o artigo:
+    https://www.peterkovesi.com/papers/FastGaussianSmoothing.pdf
 
-    img_aux = mask
+    Parametros:
+        sigma: Sigma usado na GaussianBlur
+    """
+    return int(sqrt(12*(sigma**2)/REP_BOXBLUR+1))
 
-    # Primeira borra
-    for i in range(REP_BOXBLUR):
-            img_aux = cv2.addWeighted(img_aux,
-                                      (1-(1/(i+1))),
-                                      cv2.blur(img_aux,(JANELA * (i+1), JANELA * (i+1))),
-                                      (1/(i+1)),
-                                      0)
+def gaussianBoxBlur(mask, sigma):
+    """
+    Simulacao do GaussianBlur com filtro da media. 
     
-    img_out = img_aux
+    Parametros:
+        sigma: Sigma usado para calcular a janela ideal
+        mask: Mascara a ser utilizada apos passar pelo brightPass.
+    """ 
+    janela = janelaIdeal(sigma)
 
-    # Borra mais REP-1 vezes
-    for _ in range(1,REP):
-        for i in range(REP_BOXBLUR):
-            img_aux = cv2.addWeighted(img_aux,
-                                      (1-(1/(i+1))),
-                                      cv2.blur(img_aux,(JANELA * (i+1), JANELA * (i+1))),
-                                      (1/(i+1)),
-                                      0)
-        
-        img_out = cv2.add(img_out,img_aux)
-
-    # Somar na imagem 
-    img_out = cv2.addWeighted(img,ALFA,img_out,BETA,0)
-
-    return img_out
-
+    for _ in range(REP_BOXBLUR):
+        mask = cv2.blur(mask,(janela, janela))
+    
+    return mask
 
 def createMask(img):
+    """
+    Funcao que cria a mascara com base na luminancia. 
+    
+    Parametros:
+        img: Imagem de entrada
+
+    Variaveis:
+        imgHLS: Recebe a imagem HLS.
+        Lchannel: Recebe os valores de luminancia.
+        mask: Recebe a imagem somente com as fontes de luz.
+        res: Recebe o equivalente dos pixels na imagem original, 
+            mas com base na mascara, agora em BGR
+    """
     imgHLS = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
     Lchannel = imgHLS[:,:,1]
     mask = cv2.inRange(Lchannel, THRESHOLD/255, 1)
@@ -96,9 +123,8 @@ def createMask(img):
 
     return res
 
-
 def main():
-    # Abre a imagem em escala de cinza.
+    # Abre a imagem.
     imgBGR = cv2.imread(INPUT_IMAGE)
     if imgBGR is None:
         print ('Erro abrindo a imagem.\n')
@@ -107,43 +133,24 @@ def main():
     # Normalizando com float
     imgBGR = imgBGR.astype (np.float32) / 255
 
+    # Filtro da luminancia
     brightPass = createMask(imgBGR)
     
-    img_gaussian = Gaussian(imgBGR, brightPass)
-    img_blur = Blur(imgBGR, brightPass)
+    # Inicio da funcao gaussiana
+    start_time = timeit.default_timer ()
+    print("Gaussiano:")
+    img_gaussian = gaussian(imgBGR, brightPass)
+    print ('\tTempo: %f' % (timeit.default_timer () - start_time))
 
-    #cv2.imshow ('img_orig', imgBGR)
-    #cv2.imshow ('brightPass', brightPass)
-    img_gaussian = cv2.resize(img_gaussian, (int(img_gaussian.shape[1]*0.5), int(img_gaussian.shape[0]*0.5)))
-    img_blur = cv2.resize(img_blur, (int(img_blur.shape[1]*0.5), int(img_blur.shape[0]*0.5)))
-    cv2.imshow ('img_gaussian', img_gaussian)
-    cv2.imshow ('img_blur', img_blur)
-    #cv2.imshow('comparador',comparador(img_gaussian,img_blur))
-    cv2.waitKey ()
-    cv2.destroyAllWindows ()
-
-def main_Bogdan ():
-
-    # Abre a imagem em escala de cinza.
-    img = cv2.imread (INPUT_IMAGE)
-    if img is None:
-        print ('Erro abrindo a imagem.\n')
-        sys.exit ()
-
-    img = cv2.resize(img, (int(img.shape[1]*0.8), int(img.shape[0]*0.8)))
+    # Inicio da funcao filtro da media
+    start_time = timeit.default_timer ()
+    print("Filtro da média:")
+    img_blur = boxBlur(imgBGR, brightPass)
+    print ('\tTempo: %f' % (timeit.default_timer () - start_time)) 
     
-    v1 = cv2.GaussianBlur(img, (0,0), 20)
-
-    reduzida = cv2.resize(img, (int(img.shape[1]*0.5), int(img.shape[0]*0.5)))
-    
-    v2 = cv2.GaussianBlur(reduzida, (0,0), 10)
-    reampliada = cv2.resize(v2, (img.shape[1], img.shape[0]))
-
-    cv2.imshow ('img', img)
-    cv2.imshow ('v1',v1)
-    cv2.imshow ('reduzida',reduzida)
-    cv2.imshow ('v2',v2)
-    cv2.imshow ('reampliada',reampliada)
+    cv2.imshow ('Filtro da luminancia', brightPass)
+    cv2.imshow ('Gaussiana', img_gaussian)
+    cv2.imshow ('Filtro da media', img_blur)
     cv2.waitKey ()
     cv2.destroyAllWindows ()
 
