@@ -10,18 +10,18 @@ import sys
 import timeit
 import numpy as np
 import cv2
+from math import floor, sqrt
 
 #===============================================================================
 
 # INPUT_IMAGE =  r"./Wind Waker GC.bmp"
 INPUT_IMAGE =  r"GT2.BMP"
-SIGMA = 7
-JANELA = 15
-REP = 3
+SIGMA = 10
+REP = 4
 REP_BOXBLUR = 3
-THRESHOLD = 128
-ALFA = 0.8
-BETA = 0.2
+THRESHOLD = 200
+ALFA = 0.85
+BETA = 0.15
 
 LIMITE = 1.000/255 # Indice que limita a diferenca por pixel no comparador 
 #===============================================================================
@@ -46,15 +46,14 @@ def comparador(img_1,img_2,):
 
 def Gaussian(img, mask):
     
-    # Primeira borra 
-    img_blur = cv2.GaussianBlur(mask, (0,0), SIGMA)
+    # Inicializa blur com zeros
+    mask_blur = np.zeros(img.shape, np.float32)
 
-    # Borra mais REP-1 vezes
-    for i in range(1,REP):
-        img_blur = cv2.add(img_blur,cv2.GaussianBlur(img_blur, (0,0), SIGMA*(i+1) ))
+    for exp in range(REP):
+        mask_blur = cv2.add(mask_blur,cv2.GaussianBlur(mask, (0,0), SIGMA*pow(2,exp)))
 
     # Somar na imagem 
-    img_blur = cv2.addWeighted(img,ALFA,img_blur,BETA,0)
+    img_blur = cv2.addWeighted(img,ALFA,mask_blur,BETA,0)
 
     return img_blur
 
@@ -119,7 +118,7 @@ def main():
     img_blur = cv2.resize(img_blur, (int(img_blur.shape[1]*0.5), int(img_blur.shape[0]*0.5)))
     cv2.imshow ('img_gaussian', img_gaussian)
     cv2.imshow ('img_blur', img_blur)
-    cv2.imshow('comparador',comparador(img_gaussian,img_blur))
+    #cv2.imshow('comparador',comparador(img_gaussian,img_blur))
     cv2.waitKey ()
     cv2.destroyAllWindows ()
 
@@ -149,4 +148,7 @@ def main_Bogdan ():
     cv2.destroyAllWindows ()
 
 if __name__ == '__main__':
-    main ()
+    try:
+        main()
+    except KeyboardInterrupt:
+        exit()
