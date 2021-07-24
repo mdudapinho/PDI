@@ -9,3 +9,7 @@ A função deve realizar testes envolvendo o tamanho dos blobs.
 * **Trabalho 2**
 Implementação filtro da média, separável e imagens integrais.
 As funções servem para borrar imagens utilizando janelas de tamanho HxW.
+
+* **Trabalho 3**
+Implementação bloom lightning utilizando gaussianblur e box blur.
+Bloom é o efeito de "vazamento de luz" imagens.
