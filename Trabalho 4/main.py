@@ -18,7 +18,7 @@ INPUT_IMAGE =  [r"./60.bmp", r"./82.bmp", r"./114.bmp", r"./150.bmp", r"./205.bm
 #INPUT_IMAGE =  [r"./60.bmp"]
 
 JANELA_EROSAO = 5
-JANELA_DILATACAO = 5
+JANELA_DILATACAO = 7
 LIMITE_ACEITACAO = 1.5 #se o blob for LIMITE_ACEITACAO maior que o tamanho medio de um blob, tem mais de um junto
 
 THRESHOLD = 0.2
