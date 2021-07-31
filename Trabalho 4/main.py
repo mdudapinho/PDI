@@ -14,14 +14,15 @@ from math import sqrt
 
 #===============================================================================
 
-INPUT_IMAGE =  [r"./60.bmp", r"./82.bmp", r"./114.bmp", r"./150.bmp", r"./205.bmp"]
-#INPUT_IMAGE =  [r"./60.bmp"]
+#INPUT_IMAGE =  [r"./60.bmp", r"./82.bmp", r"./114.bmp", r"./150.bmp", r"./205.bmp"]
+INPUT_IMAGE =  [r"./150.bmp"]
 
 JANELA_EROSAO = 5
-JANELA_DILATACAO = 7
-LIMITE_ACEITACAO = 1.5 #se o blob for LIMITE_ACEITACAO maior que o tamanho medio de um blob, tem mais de um junto
+JANELA_DILATACAO = 5
+LIMITE_ACEITACAO = 1.3 #se o blob for LIMITE_ACEITACAO maior que o tamanho medio de um blob, tem mais de um junto
 
 THRESHOLD = 0.2
+
 #===============================================================================
 
 def Erosao(img):
@@ -93,6 +94,29 @@ def FindBlob (label,img, y0,x0, blob):
 
     return blob
 
+def rotula (img):
+    print("\t\t\trotulando")
+    rows, cols = img.shape
+    
+    label = 1
+    # Difere o pixel marcado com 1, para começar o label como 1.
+    img_ = np.zeros(img.shape)
+    img_ = np.where( img == 1 , -1, 0)
+
+    # Define uma lista de espacos identificados como arroz
+    blobs =[]
+
+    # Procura na imagem pixels brancos
+    for linha in range(rows):
+        for coluna in range(cols):
+            # Encontra pixel capaz de ser arroz
+            if (img_[linha][coluna] == -1):
+                blob = FindBlob(label, img_,linha,coluna,[])
+                blobs.append(blob)
+                label = label + 1
+    
+    return blobs
+
 def countBlobs(blobs):
     print("blobs antes: ", len(blobs))
 
@@ -106,32 +130,10 @@ def countBlobs(blobs):
     for blob in blobs:
         blob_counter += 1
         if(len(blob)/LIMITE_ACEITACAO > media):
-            blob_counter += int(len(blob)/(LIMITE_ACEITACAO*media))
+            blob_counter += int(len(blob)/(media))
+    
     print("blobs depois: ", blob_counter)
     return blob_counter
-
-def rotula (img):
-    print("\t\t\trotulando")
-    rows, cols = img.shape
-    
-    label = 1
-    # Difere o pixel marcado com 1, para começar o label como 1.
-    img_ = np.where( img == 1 , -1, 0)
-
-    # Define uma lista de espacos identificados como arroz
-    blobs =[]
-
-    # Procura na imagem pixels brancos
-    for linha in range(rows):
-        for coluna in range(cols):
-            
-            # Encontra pixel capaz de ser arroz
-            if (img_[linha][coluna] == -1):
-                blob = FindBlob(label, img_,linha,coluna,[])
-                blobs.append(blob)
-                label = label + 1
-    
-    return blobs
 
 #Binarizacao com Treshhold local
 def LimirarizacaoAdaptativa(img):
