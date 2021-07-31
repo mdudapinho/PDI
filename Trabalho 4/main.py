@@ -15,13 +15,13 @@ import statistics
 
 #===============================================================================
 
-INPUT_IMAGE =  [r"./114.bmp", r"./150.bmp", r"./205.bmp"] #r"./60.bmp", r"./82.bmp", 
+INPUT_IMAGE =  [r"./60.bmp", r"./82.bmp", r"./114.bmp", r"./150.bmp", r"./205.bmp"] 
 #INPUT_IMAGE =  [r"./150.bmp"]
 
 JANELA_EROSAO = 5
 JANELA_DILATACAO = 5
 LIMITE_ACEITACAO = 1.3 #se o blob for LIMITE_ACEITACAO maior que o tamanho medio de um blob, tem mais de um junto
-NUM_MAGICO = 1.125 #1.12
+NUM_MAGICO = 1.125 
 THRESHOLD = 0.2
 
 #===============================================================================
