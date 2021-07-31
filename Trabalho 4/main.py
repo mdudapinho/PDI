@@ -15,13 +15,13 @@ import statistics
 
 #===============================================================================
 
-INPUT_IMAGE =  [r"./60.bmp", r"./82.bmp", r"./114.bmp", r"./150.bmp", r"./205.bmp"]
+INPUT_IMAGE =  [r"./114.bmp", r"./150.bmp", r"./205.bmp"] #r"./60.bmp", r"./82.bmp", 
 #INPUT_IMAGE =  [r"./150.bmp"]
 
 JANELA_EROSAO = 5
 JANELA_DILATACAO = 5
 LIMITE_ACEITACAO = 1.3 #se o blob for LIMITE_ACEITACAO maior que o tamanho medio de um blob, tem mais de um junto
-
+NUM_MAGICO = 1.125 #1.12
 THRESHOLD = 0.2
 
 #===============================================================================
@@ -48,7 +48,7 @@ def Erosao(img):
     return img_out
 
 def Dilata(img):
-    print("\t\tDilata")
+    print("\tDilata")
     rows, cols = img.shape
     img_out = np.zeros(img.shape)
 
@@ -67,9 +67,6 @@ def Dilata(img):
 
     return img_out
 
-def defineSigma(w, h):
-    #Slide HDR, pag 45
-    return int(min(w,h)/24)
 
 # Funcao de inundacao
 def FindBlob (label,img, y0,x0, blob):
@@ -119,40 +116,32 @@ def rotula (img):
     return blobs
 
 def countBlobs(blobs):
-    print("blobs antes: ", len(blobs))
-
     lens = []
     for blob in blobs:
         lens.append(len(blob))
     
     mediana = statistics.median(lens)
 
-
     blob_counter = 0
     for blob in blobs:
         blob_counter += 1
         if(len(blob)/LIMITE_ACEITACAO > mediana):
-            blob_counter += int(len(blob)/(mediana*LIMITE_ACEITACAO))
+            blob_counter += int(len(blob)/(mediana*NUM_MAGICO))
     
-    print("blobs depois: ", blob_counter)
     return blob_counter
+
+def defineSigma(w, h):
+    #Slide HDR, pag 45
+    return int(min(w,h)/24)
 
 #Binarizacao com Treshhold local
 def LimirarizacaoAdaptativa(img):
     
     rows, cols = img.shape
     sigma = defineSigma(cols, rows)
-    print("\tSigma: ", sigma)
     blur = cv2.GaussianBlur(img, (0,0), sigma)  
     
     img_bin = np.where( img-blur > THRESHOLD, 1, 0)
-
-    # img_bin = np.zeros(img.shape)
-    # for linha in range(rows):
-    #     for coluna in range(cols):
-    #         img_bin[linha][coluna] = 0
-    #         if((img[linha][coluna] - blur[linha][coluna]) > THRESHOLD):
-    #             img_bin[linha][coluna] = 1
 
     return img_bin
 
@@ -182,8 +171,8 @@ def main():
         
         start_time = timeit.default_timer ()
         img_out, arroz_counter = contaArroz(imagem)
-        print ('\tTempo: %f' % (timeit.default_timer () - start_time))
         print("\tencontrou: ", arroz_counter)
+        print ('\tTempo: %f' % (timeit.default_timer () - start_time))
         vert = np.concatenate((imagem, img_out), axis=1)
         vert = cv2.resize(vert, (int(vert.shape[1]/2), int(vert.shape[0]/2)))
         cv2.imshow (img, vert)
