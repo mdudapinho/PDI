@@ -11,11 +11,12 @@ import timeit
 import numpy as np
 import cv2
 from math import sqrt
+import statistics
 
 #===============================================================================
 
-#INPUT_IMAGE =  [r"./60.bmp", r"./82.bmp", r"./114.bmp", r"./150.bmp", r"./205.bmp"]
-INPUT_IMAGE =  [r"./150.bmp"]
+INPUT_IMAGE =  [r"./60.bmp", r"./82.bmp", r"./114.bmp", r"./150.bmp", r"./205.bmp"]
+#INPUT_IMAGE =  [r"./150.bmp"]
 
 JANELA_EROSAO = 5
 JANELA_DILATACAO = 5
@@ -120,17 +121,18 @@ def rotula (img):
 def countBlobs(blobs):
     print("blobs antes: ", len(blobs))
 
-    soma = 0
+    lens = []
     for blob in blobs:
-        #print("tam: ", len(blob))
-        soma += len(blob)
-    media = soma/len(blobs)
+        lens.append(len(blob))
     
+    mediana = statistics.median(lens)
+
+
     blob_counter = 0
     for blob in blobs:
         blob_counter += 1
-        if(len(blob)/LIMITE_ACEITACAO > media):
-            blob_counter += int(len(blob)/(media))
+        if(len(blob)/LIMITE_ACEITACAO > mediana):
+            blob_counter += int(len(blob)/(mediana*LIMITE_ACEITACAO))
     
     print("blobs depois: ", blob_counter)
     return blob_counter
