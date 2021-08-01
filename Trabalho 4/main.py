@@ -29,44 +29,20 @@ THRESHOLD = 0.2
 def Erosao(img):
     print("\tErode")
 
-    rows, cols = img.shape
-    img_out = np.zeros(img.shape)
+    img = img.astype('uint8')
+    kernel = np.ones((JANELA_EROSAO,JANELA_EROSAO),np.uint8)
+    erosion = cv2.erode(img,kernel,iterations = 1)
 
-    for linha in range(int(JANELA_EROSAO/2),rows-int(JANELA_EROSAO/2)):
-        for coluna in range(int(JANELA_EROSAO/2),cols-int(JANELA_EROSAO/2)):
-            and_ = True
-            for y in range(linha-int(JANELA_EROSAO/2),linha+int(JANELA_EROSAO/2)+1):
-                for x in range(coluna-int(JANELA_EROSAO/2),coluna+int(JANELA_EROSAO/2)+1):
-                    if(img[y][x] == 0 ):
-                        and_ = False
-                        break
-                if(not and_):
-                    break
-
-            img_out[linha][coluna] = and_
-
-    return img_out
+    return erosion
 
 def Dilata(img):
     print("\tDilata")
-    rows, cols = img.shape
-    img_out = np.zeros(img.shape)
 
-    for linha in range(int(JANELA_DILATACAO/2),rows-int(JANELA_DILATACAO/2)):
-        for coluna in range(int(JANELA_DILATACAO/2),cols-int(JANELA_DILATACAO/2)):
-            or_ = False
-            for y in range(linha-int(JANELA_DILATACAO/2),linha+int(JANELA_DILATACAO/2)+1):
-                for x in range(coluna-int(JANELA_DILATACAO/2),coluna+int(JANELA_DILATACAO/2)+1):
-                    if(img[y][x] == 1 ):
-                        or_ = True
-                        break
-                if(or_):
-                    break
+    img = img.astype('uint8')
+    kernel = np.ones((JANELA_DILATACAO,JANELA_DILATACAO),np.uint8)
+    erosion = cv2.dilate(img,kernel,iterations = 1)
 
-            img_out[linha][coluna] = or_
-
-    return img_out
-
+    return erosion
 
 # Funcao de inundacao
 def FindBlob (label,img, y0,x0, blob):
