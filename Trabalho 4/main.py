@@ -21,7 +21,7 @@ INPUT_IMAGE =  [r"./60.bmp", r"./82.bmp", r"./114.bmp", r"./150.bmp", r"./205.bm
 JANELA_EROSAO = 5
 JANELA_DILATACAO = 5
 LIMITE_ACEITACAO = 1.3 #se o blob for LIMITE_ACEITACAO maior que o tamanho medio de um blob, tem mais de um junto
-NUM_MAGICO = 1.125 
+MAX_ARROZ = 1.125 
 THRESHOLD = 0.2
 
 #===============================================================================
@@ -102,7 +102,7 @@ def countBlobs(blobs):
     for blob in blobs:
         blob_counter += 1
         if(len(blob)/LIMITE_ACEITACAO > mediana):
-            blob_counter += int(len(blob)/(mediana*NUM_MAGICO))
+            blob_counter += int(len(blob)/(mediana*MAX_ARROZ))
     
     return blob_counter
 
