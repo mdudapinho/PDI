@@ -37,7 +37,6 @@ Constantes de cálculo de arroz.
 - MAX_ARROZ
     Define o tamanho máximo de um arroz dentro de um blob sinalizado como aglomeração.
     Esse limite é dado pelo cálculo MAX_ARROZ*mediana.
-
     Exemplo: Se MAX_ARROZ for igual a 1.5, o arroz dentro do blob terá no máximo 1.5 vezes o tamanho da mediana.
 
 - THRESHOLD
