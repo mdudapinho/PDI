@@ -27,7 +27,7 @@ SAT_MIN = 10
 SAT_MAX = 50
 VAL_MIN = 10
 VAL_MAX = 60
-T_LOW = 0.3
+T_LOW = 0.5
 T_HIGH = 0.95
 
 #===============================================================================
@@ -107,7 +107,6 @@ def createMask(img,bg):
     #R
     alpha_color[:,:,2] = 1 - (alpha_color[:,:,0] + alpha_color[:,:,1])
  
-    cv2.imshow("img_ANTES",img)
     img[:,:,1] = np.where( alpha_color[:,:,2] == 1, (img[:,:,0]+img[:,:,2])/2, img[:,:,1])
 
     # Chroma key
@@ -115,9 +114,7 @@ def createMask(img,bg):
     res[:,:,0] = alpha_n[:,:]*img[:,:,0] + bg[:,:,0]*(1-alpha_n[:,:])
     res[:,:,1] = alpha_n[:,:]*img[:,:,1] + bg[:,:,1]*(1-alpha_n[:,:])
     res[:,:,2] = alpha_n[:,:]*img[:,:,2] + bg[:,:,2]*(1-alpha_n[:,:])
-    
-    res[:,:,1] = np.where( alpha_color[:,:,2] == 1, (res[:,:,0]+res[:,:,2])/2, res[:,:,1])
-    
+        
     cv2.imshow("alpha_color",alpha_color)    
     #cv2.imshow("alpha_n",alpha_n)
     #cv2.imshow("img_teste",img)
