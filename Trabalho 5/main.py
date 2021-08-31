@@ -17,53 +17,96 @@ import matplotlib.pyplot as plt
 
 #===============================================================================
 
-#INPUT_IMAGE = [r"./img/0.bmp",r"./img/1.bmp",r"./img/2.bmp",r"./img/3.bmp",r"./img/4.bmp",r"./img/5.bmp",r"./img/7.bmp",r"./img/8.bmp"]
-INPUT_IMAGE = [r"./img/2.bmp"] #,r"./img/1.bmp",r"./img/2.bmp",r"./img/3.bmp",r"./img/4.bmp",r"./img/5.bmp",r"./img/7.bmp",r"./img/8.bmp"]
-
-HUE_MIN = 70
-HUE_MAX = 170
-SAT = 75
-LUM = 20
+INPUT_IMAGE = [r"./img/0.bmp",r"./img/1.bmp",r"./img/2.bmp",r"./img/3.bmp",r"./img/4.bmp",r"./img/5.bmp",r"./img/6.bmp",r"./img/7.bmp",r"./img/8.bmp"]
+# INPUT_IMAGE = [r"./img/0.bmp"] 
+HUE_MIN = 80
+HUE_MAX = 150
+HUE_MIN_RAMP = HUE_MIN + (HUE_MIN + HUE_MAX)/4
+HUE_MAX_RAMP = HUE_MAX - (HUE_MIN + HUE_MAX)/4
+SAT_MIN = 10
+SAT_MAX = 40
+VAL_MIN = 5
+VAL_MAX = 40
+T_LOW = 0.4
+T_HIGH = 0.8
 
 #===============================================================================
 def hue_calc(x):
-    return np.where((x > HUE_MIN) & (x < HUE_MAX), ((HUE_MIN+HUE_MAX)/2)-2*np.absolute(((HUE_MIN+HUE_MAX)/2)-x), 0)
+    """           _________     
+                 /         \
+        ________/           \____________
+    """
+
+    # return np.where((x > HUE_MIN) & (x < HUE_MAX),
+    #                 ((((HUE_MIN+HUE_MAX)/2)-2*np.absolute(((HUE_MIN+HUE_MAX)/2)-x)))/((HUE_MIN+HUE_MAX)/2)
+    #                 ,0)
+
+    return np.where(x < HUE_MIN,
+                    0, 
+                    np.where(x < HUE_MIN_RAMP,
+                            ((((HUE_MIN+HUE_MAX)/2)-2*np.absolute(((HUE_MIN+HUE_MAX)/2)-x)))/((HUE_MIN+HUE_MAX)/2), 
+                            np.where(x<HUE_MAX_RAMP,
+                                     1,
+                                     np.where(x < HUE_MAX,
+                                              ((((HUE_MIN+HUE_MAX)/2)-2*np.absolute(((HUE_MIN+HUE_MAX)/2)-x)))/((HUE_MIN+HUE_MAX)/2),
+                                              0))))
+
 
 def sat_calc(x):
+    """
+                  _________     
+                 /        
+        ________/           
+    """
     x*=100
-    return np.where(x > SAT, (1/(100-SAT))*x -(SAT/(100-SAT)) , 0)
+    return np.where((x > SAT_MIN) & (x < SAT_MAX),
+                    (1/(SAT_MAX-SAT_MIN))*x -(SAT_MIN/(SAT_MAX-SAT_MIN)) ,
+                    np.where(x < SAT_MIN, 0, 1))
 
-def lum_calc(x):
+def val_calc(x):
+    """
+                  _________     
+                 /        
+        ________/           
+    """
     x*=100
-    return np.where(x > LUM, (1/(100-LUM))*x -(LUM/(100-LUM)) , 0)
+    return np.where((x > VAL_MIN) & (x < VAL_MAX) , (1/(VAL_MAX-VAL_MIN))*x -(VAL_MIN/(VAL_MAX-VAL_MIN)) , np.where(x < VAL_MIN, 0 , 1))
 
 def createMask(img,bg):
-    imgHLS = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
+    imgHSV = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
     # Redimensiona o fundo para se adequar a imagem
     bg = cv2.resize(bg, (int(img.shape[1]), int(img.shape[0])))
 
-    res = np.zeros(img.shape)
     alpha = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    alpha = alpha.astype (np.float32)/255
     alpha_n = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    alpha_n = alpha_n.astype (np.float32)/255
 
     # Criando mascara
-    h = hue_calc(imgHLS[:,:,0])
-    l = lum_calc(imgHLS[:,:,1])
-    s = sat_calc(imgHLS[:,:,2])
-    alpha = (h*s*l)
-
-    alpha = np.where(alpha > 1, 1, alpha)
+    h = hue_calc(imgHSV[:,:,0])
+    s = sat_calc(imgHSV[:,:,1])
+    v = val_calc(imgHSV[:,:,2])   
+    alpha = (h*s*v)
+    #cv2.imshow("alpha",alpha)
 
     # Normalizando
-    # cv2.normalize(alpha, alpha_n, 0, 1, cv2.NORM_MINMAX)
-    alpha_n = 1 - alpha
+    cv2.normalize(alpha, alpha_n, 0, 1, cv2.NORM_MINMAX)    
+    
+    # Negativa
+    alpha_n = (1.0) - alpha
 
+    # Threshold fundo
+    alpha_n = np.where(alpha_n < T_LOW, 0 , alpha_n)
+    alpha_n = np.where(alpha_n > T_HIGH, 1 , alpha_n)  
+    
     # Chroma key
+    res = np.zeros(img.shape)
     res[:,:,0] = alpha_n[:,:]*img[:,:,0] + bg[:,:,0]*(1-alpha_n[:,:])
     res[:,:,1] = alpha_n[:,:]*img[:,:,1] + bg[:,:,1]*(1-alpha_n[:,:])
     res[:,:,2] = alpha_n[:,:]*img[:,:,2] + bg[:,:,2]*(1-alpha_n[:,:])
 
+    
     cv2.imshow("alpha_n",alpha_n)
     cv2.imshow("teste",res)
     cv2.waitKey()
