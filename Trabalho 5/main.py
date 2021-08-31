@@ -18,17 +18,17 @@ import matplotlib.pyplot as plt
 #===============================================================================
 
 INPUT_IMAGE = [r"./img/0.bmp",r"./img/1.bmp",r"./img/2.bmp",r"./img/3.bmp",r"./img/4.bmp",r"./img/5.bmp",r"./img/6.bmp",r"./img/7.bmp",r"./img/8.bmp"]
-# INPUT_IMAGE = [r"./img/0.bmp"] 
-HUE_MIN = 80
-HUE_MAX = 150
-HUE_MIN_RAMP = HUE_MIN + (HUE_MIN + HUE_MAX)/4
-HUE_MAX_RAMP = HUE_MAX - (HUE_MIN + HUE_MAX)/4
+# INPUT_IMAGE = [r"./img/9.bmp"] 
+HUE_MIN = 70
+HUE_MAX = 170
+HUE_MIN_RAMP = HUE_MIN + (HUE_MIN + HUE_MAX)/8
+HUE_MAX_RAMP = HUE_MAX - (HUE_MIN + HUE_MAX)/8
 SAT_MIN = 10
-SAT_MAX = 40
-VAL_MIN = 5
-VAL_MAX = 40
-T_LOW = 0.4
-T_HIGH = 0.8
+SAT_MAX = 50
+VAL_MIN = 10
+VAL_MAX = 60
+T_LOW = 0.3
+T_HIGH = 0.95
 
 #===============================================================================
 def hue_calc(x):
@@ -88,7 +88,6 @@ def createMask(img,bg):
     s = sat_calc(imgHSV[:,:,1])
     v = val_calc(imgHSV[:,:,2])   
     alpha = (h*s*v)
-    #cv2.imshow("alpha",alpha)
 
     # Normalizando
     cv2.normalize(alpha, alpha_n, 0, 1, cv2.NORM_MINMAX)    
@@ -98,16 +97,30 @@ def createMask(img,bg):
 
     # Threshold fundo
     alpha_n = np.where(alpha_n < T_LOW, 0 , alpha_n)
-    alpha_n = np.where(alpha_n > T_HIGH, 1 , alpha_n)  
-    
+    alpha_n = np.where(alpha_n > T_HIGH, 1 , alpha_n)
+
+    alpha_color = np.zeros(img.shape)
+    #B
+    alpha_color[:,:,0] = np.where(alpha_n < T_LOW, 1 , 0)
+    #G
+    alpha_color[:,:,1] = np.where(alpha_n > T_HIGH, 1 , 0)  
+    #R
+    alpha_color[:,:,2] = 1 - (alpha_color[:,:,0] + alpha_color[:,:,1])
+ 
+    cv2.imshow("img_ANTES",img)
+    img[:,:,1] = np.where( alpha_color[:,:,2] == 1, (img[:,:,0]+img[:,:,2])/2, img[:,:,1])
+
     # Chroma key
     res = np.zeros(img.shape)
     res[:,:,0] = alpha_n[:,:]*img[:,:,0] + bg[:,:,0]*(1-alpha_n[:,:])
     res[:,:,1] = alpha_n[:,:]*img[:,:,1] + bg[:,:,1]*(1-alpha_n[:,:])
     res[:,:,2] = alpha_n[:,:]*img[:,:,2] + bg[:,:,2]*(1-alpha_n[:,:])
-
     
-    cv2.imshow("alpha_n",alpha_n)
+    res[:,:,1] = np.where( alpha_color[:,:,2] == 1, (res[:,:,0]+res[:,:,2])/2, res[:,:,1])
+    
+    cv2.imshow("alpha_color",alpha_color)    
+    #cv2.imshow("alpha_n",alpha_n)
+    #cv2.imshow("img_teste",img)
     cv2.imshow("teste",res)
     cv2.waitKey()
     return res
