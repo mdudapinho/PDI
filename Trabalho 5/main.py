@@ -12,50 +12,67 @@ import statistics
 import timeit
 import sys
 import cv2
+from scipy import signal
+import matplotlib.pyplot as plt
 
 #===============================================================================
 
-INPUT_IMAGE = [r"./img/1.bmp"]#, r"./img/1.bmp" ]
+#INPUT_IMAGE = [r"./img/0.bmp",r"./img/1.bmp",r"./img/2.bmp",r"./img/3.bmp",r"./img/4.bmp",r"./img/5.bmp",r"./img/7.bmp",r"./img/8.bmp"]
+INPUT_IMAGE = [r"./img/2.bmp"] #,r"./img/1.bmp",r"./img/2.bmp",r"./img/3.bmp",r"./img/4.bmp",r"./img/5.bmp",r"./img/7.bmp",r"./img/8.bmp"]
+
+HUE_MIN = 70
+HUE_MAX = 170
+SAT = 75
+LUM = 20
 
 #===============================================================================
-def defH(h_, lower_green, lower_center_green, upper_center_green, upper_green):
-    
-    h = 1
-    if( h_ > lower_green and h_ < lower_center_green ):
-        h = 1 - (h_-lower_green) / (lower_center_green - lower_green)
-    elif (h_ >= lower_center_green and h_ <= upper_center_green):
-        h = 0
-    elif(h_ > upper_center_green and h_ < upper_green):
-        h = (h_-upper_center_green) * (upper_green - upper_center_green)
-    return h
+def hue_calc(x):
+    return np.where((x > HUE_MIN) & (x < HUE_MAX), ((HUE_MIN+HUE_MAX)/2)-2*np.absolute(((HUE_MIN+HUE_MAX)/2)-x), 0)
 
-def createMask(img):
-    imgHSV = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+def sat_calc(x):
+    x*=100
+    return np.where(x > SAT, (1/(100-SAT))*x -(SAT/(100-SAT)) , 0)
 
-    lower_green = [40, 40,40]
-    lower_center_green = [50, 150,150]
-    upper_center_green = [60, 200,200]
-    upper_green = [70,255,255]
+def lum_calc(x):
+    x*=100
+    return np.where(x > LUM, (1/(100-LUM))*x -(LUM/(100-LUM)) , 0)
 
-    #mask = cv2.inRange(imgHSV, lower_green, upper_green)
-    mask = np.zeros(img.shape)
-    rows, cols, _ = imgHSV.shape
+def createMask(img,bg):
+    imgHLS = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
 
-    for linha in range(rows):
-        for coluna in range(cols):
-            h = defH(imgHSV[linha][coluna][0], lower_green[0], lower_center_green[0], upper_center_green[0], upper_green[0])
-            s = defH(imgHSV[linha][coluna][1], lower_green[1], lower_center_green[1], upper_center_green[1], upper_green[1])
-            v = defH(imgHSV[linha][coluna][2], lower_green[2], lower_center_green[2], upper_center_green[2], upper_green[2])
-            
-            mask[linha][coluna] = (h*s*v)/1
+    # Redimensiona o fundo para se adequar a imagem
+    bg = cv2.resize(bg, (int(img.shape[1]), int(img.shape[0])))
 
-    
-    res = mask#cv2.bitwise_and(img,img, mask= mask)
+    res = np.zeros(img.shape)
+    alpha = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    alpha_n = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
+    # Criando mascara
+    h = hue_calc(imgHLS[:,:,0])
+    l = lum_calc(imgHLS[:,:,1])
+    s = sat_calc(imgHLS[:,:,2])
+    alpha = (h*s*l)
+
+    alpha = np.where(alpha > 1, 1, alpha)
+
+    # Normalizando
+    # cv2.normalize(alpha, alpha_n, 0, 1, cv2.NORM_MINMAX)
+    alpha_n = 1 - alpha
+
+    # Chroma key
+    res[:,:,0] = alpha_n[:,:]*img[:,:,0] + bg[:,:,0]*(1-alpha_n[:,:])
+    res[:,:,1] = alpha_n[:,:]*img[:,:,1] + bg[:,:,1]*(1-alpha_n[:,:])
+    res[:,:,2] = alpha_n[:,:]*img[:,:,2] + bg[:,:,2]*(1-alpha_n[:,:])
+
+    cv2.imshow("alpha_n",alpha_n)
+    cv2.imshow("teste",res)
+    cv2.waitKey()
     return res
 
 def main():
+
     for img in INPUT_IMAGE:
+        bg = cv2.imread(r"./img/bg.bmp")
         print("imagem:", img)
         imagem = cv2.imread(img)
         if imagem is None:
@@ -63,21 +80,18 @@ def main():
             sys.exit ()
 
         # Filtro de verde
-        greenPass = createMask(imagem)
+        
+        bg = bg.astype (np.float32) / 255
         imagem = imagem.astype (np.float32) / 255
 
+        #imagem = cv2.resize(imagem, (int(imagem.shape[1]/2), int(imagem.shape[0]/2)))
+
         start_time = timeit.default_timer ()
+        chroma = createMask(imagem, bg)
         print ('\tTempo: %f' % (timeit.default_timer () - start_time))
 
-        # Concatena imagens na tela para visualização
-        #vert = np.concatenate((imagem), axis=1)
-        imagem = cv2.resize(imagem, (int(imagem.shape[1]/2), int(imagem.shape[0]/2)))
-        greenPass = cv2.resize(greenPass, (int(greenPass.shape[1]/2), int(greenPass.shape[0]/2)))
-        cv2.imshow (img, imagem)
-        cv2.imshow ("mask"+img, greenPass)
-        #cv2.imwrite (img+'_out.png', vert*255)
+        cv2.imwrite (img+'_out.png', chroma*255)
 
-    cv2.waitKey ()
     cv2.destroyAllWindows ()
 
 if __name__ == '__main__':
