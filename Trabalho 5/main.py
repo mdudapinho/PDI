@@ -6,41 +6,46 @@
 # Maria Eduarda Pinho
 #===============================================================================
 
-from math import sqrt
 import numpy as np
-import statistics
 import timeit
 import sys
 import cv2
-from scipy import signal
-import matplotlib.pyplot as plt
 
 #===============================================================================
 
 INPUT_IMAGE = [r"./img/0.bmp",r"./img/1.bmp",r"./img/2.bmp",r"./img/3.bmp",r"./img/4.bmp",r"./img/5.bmp",r"./img/6.bmp",r"./img/7.bmp",r"./img/8.bmp"]
-# INPUT_IMAGE = [r"./img/9.bmp"] 
+
+# Hue
 HUE_MIN = 70
 HUE_MAX = 170
 HUE_MIN_RAMP = HUE_MIN + (HUE_MIN + HUE_MAX)/8
 HUE_MAX_RAMP = HUE_MAX - (HUE_MIN + HUE_MAX)/8
+# Saturação
 SAT_MIN = 10
 SAT_MAX = 50
+# Value
 VAL_MIN = 10
 VAL_MAX = 60
-T_LOW = 0.5
+# Threshold para ajuste de fundo e frente
+T_LOW = 0.45
 T_HIGH = 0.95
 
 #===============================================================================
 def hue_calc(x):
-    """           _________     
-                 /         \
-        ________/           \____________
     """
+    Hue - Cálculo do valor do HUE para a seleção do fundo verde
+    As seguintes macros definem os limites da função de cálculo: 
 
-    # return np.where((x > HUE_MIN) & (x < HUE_MAX),
-    #                 ((((HUE_MIN+HUE_MAX)/2)-2*np.absolute(((HUE_MIN+HUE_MAX)/2)-x)))/((HUE_MIN+HUE_MAX)/2)
-    #                 ,0)
+                  \/ HUE_MIN_RAMP  \/ HUE_MAX_RAMP
+                  __________________     
+                 /                  \
+        ________/                    \____________
+               /\HUE_MIN             /\ HUE_MAX
+    
+    A função é feita encadeando a função np.where da esquerda para a direita
+    em relação a função.
 
+    """
     return np.where(x < HUE_MIN,
                     0, 
                     np.where(x < HUE_MIN_RAMP,
@@ -51,12 +56,15 @@ def hue_calc(x):
                                               ((((HUE_MIN+HUE_MAX)/2)-2*np.absolute(((HUE_MIN+HUE_MAX)/2)-x)))/((HUE_MIN+HUE_MAX)/2),
                                               0))))
 
-
 def sat_calc(x):
     """
+    Saturação - Cálculo do valor de saturação para a seleção do fundo verde
+    As seguintes macros definem os limites da função de cálculo: 
+                 \/ SAT_MAX
                   _________     
                  /        
         ________/           
+               /\ SAT_MIN    
     """
     x*=100
     return np.where((x > SAT_MIN) & (x < SAT_MAX),
@@ -65,84 +73,85 @@ def sat_calc(x):
 
 def val_calc(x):
     """
+    Value -  Cálculo do valor de value para a seleção do fundo verde
+    As seguintes macros definem os limites da função de cálculo: 
+                 \/ VAL_MAX
                   _________     
                  /        
         ________/           
+               /\ VAL_MIN          
     """
     x*=100
-    return np.where((x > VAL_MIN) & (x < VAL_MAX) , (1/(VAL_MAX-VAL_MIN))*x -(VAL_MIN/(VAL_MAX-VAL_MIN)) , np.where(x < VAL_MIN, 0 , 1))
+    return np.where((x > VAL_MIN) & (x < VAL_MAX),
+                    (1/(VAL_MAX-VAL_MIN))*x -(VAL_MIN/(VAL_MAX-VAL_MIN)), 
+                    np.where(x < VAL_MIN, 0 , 1))
 
-def createMask(img,bg):
+def chromakey(img,bg):
     imgHSV = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
     # Redimensiona o fundo para se adequar a imagem
     bg = cv2.resize(bg, (int(img.shape[1]), int(img.shape[0])))
-
-    alpha = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    alpha = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)   
     alpha = alpha.astype (np.float32)/255
-    alpha_n = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    alpha_n = alpha_n.astype (np.float32)/255
 
-    # Criando mascara
+    # Calculando valores
     h = hue_calc(imgHSV[:,:,0])
     s = sat_calc(imgHSV[:,:,1])
     v = val_calc(imgHSV[:,:,2])   
-    alpha = (h*s*v)
-
-    # Normalizando
-    cv2.normalize(alpha, alpha_n, 0, 1, cv2.NORM_MINMAX)    
-    
-    # Negativa
-    alpha_n = (1.0) - alpha
+  
+    # Inverso do filtro
+    alpha = (1.0) - (h*s*v)
 
     # Threshold fundo
-    alpha_n = np.where(alpha_n < T_LOW, 0 , alpha_n)
-    alpha_n = np.where(alpha_n > T_HIGH, 1 , alpha_n)
+    alpha = np.where(alpha < T_LOW, 0 , alpha)
+    # Threshold frente
+    alpha = np.where(alpha > T_HIGH, 1 , alpha)
 
-    alpha_color = np.zeros(img.shape)
-    #B
-    alpha_color[:,:,0] = np.where(alpha_n < T_LOW, 1 , 0)
-    #G
-    alpha_color[:,:,1] = np.where(alpha_n > T_HIGH, 1 , 0)  
-    #R
-    alpha_color[:,:,2] = 1 - (alpha_color[:,:,0] + alpha_color[:,:,1])
+    # Separa o Fundo
+    fundo = np.where(alpha < T_LOW, 1 , 0)
+    # Separa a frente
+    frente = np.where(alpha > T_HIGH, 1 , 0)
+    # Todos os valores que não são frente e fundo
+    meio = 1 - (fundo + frente)
  
-    img[:,:,1] = np.where( alpha_color[:,:,2] == 1, (img[:,:,0]+img[:,:,2])/2, img[:,:,1])
+    # Reduzindo verder nas bordas - Onde não é nem fundo e nem frente
+    img[:,:,1] = np.where( meio == 1, (img[:,:,0]+img[:,:,2])/2, img[:,:,1])
 
-    # Chroma key
+    # Troca do fundo verde pela imagem de background
+    # Cálculo -> Res = Filtro*Imagem + Background*(1-filtro)
     res = np.zeros(img.shape)
-    res[:,:,0] = alpha_n[:,:]*img[:,:,0] + bg[:,:,0]*(1-alpha_n[:,:])
-    res[:,:,1] = alpha_n[:,:]*img[:,:,1] + bg[:,:,1]*(1-alpha_n[:,:])
-    res[:,:,2] = alpha_n[:,:]*img[:,:,2] + bg[:,:,2]*(1-alpha_n[:,:])
+    res[:,:,0] = alpha[:,:]*img[:,:,0] + bg[:,:,0]*(1-alpha[:,:])
+    res[:,:,1] = alpha[:,:]*img[:,:,1] + bg[:,:,1]*(1-alpha[:,:])
+    res[:,:,2] = alpha[:,:]*img[:,:,2] + bg[:,:,2]*(1-alpha[:,:])
         
-    cv2.imshow("alpha_color",alpha_color)    
-    #cv2.imshow("alpha_n",alpha_n)
-    #cv2.imshow("img_teste",img)
-    cv2.imshow("teste",res)
-    cv2.waitKey()
+    # DEBUG
+    # cv2.imshow("filtro",alpha)
+    # cv2.imshow("resultado",res)
+    # cv2.waitKey()
+
     return res
 
 def main():
 
     for img in INPUT_IMAGE:
         bg = cv2.imread(r"./img/bg.bmp")
-        print("imagem:", img)
+        if bg is None:
+            print ('Erro abrindo a imagem de fundo.\n')
+            sys.exit ()
         imagem = cv2.imread(img)
         if imagem is None:
             print ('Erro abrindo a imagem.\n')
             sys.exit ()
-
-        # Filtro de verde
         
         bg = bg.astype (np.float32) / 255
         imagem = imagem.astype (np.float32) / 255
 
-        #imagem = cv2.resize(imagem, (int(imagem.shape[1]/2), int(imagem.shape[0]/2)))
-
+        print("imagem:", img)
         start_time = timeit.default_timer ()
-        chroma = createMask(imagem, bg)
+        # Chamada da função principal
+        chroma = chromakey(imagem, bg)
         print ('\tTempo: %f' % (timeit.default_timer () - start_time))
-
+        
         cv2.imwrite (img+'_out.png', chroma*255)
 
     cv2.destroyAllWindows ()
